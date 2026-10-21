@@ -70,3 +70,12 @@ test('status colors survive wrapped table cells and agree with summary and techn
   const vehicle=pages[0].find(t=>t.text.startsWith('Nissan March'));assert(vehicle.font.name.includes('Bold'));assert.equal(vehicle.size,15);
  }
 });
+test('imprints fit their printed rectangle without upscaling or changing orientation',()=>{
+ for(const [w,h,expected] of [[6000,4000,{width:450,height:300}],[6000,1000,{width:1000,height:167}],[2000,6000,{width:100,height:300}],[180,45,{width:180,height:45}]])assert.deepEqual(P.imprintSize(w,h),expected);
+ for(const [w,h] of [[0,200],[100,-1],[Infinity,200]])assert.throws(()=>P.imprintSize(w,h),/dimensiones/);
+});
+test('already compact JPEG imprints are reused byte for byte on repeat export',async()=>{
+ const jpeg='data:image/jpeg;base64,'+fs.readFileSync(require('node:path').join(__dirname,'fixtures/photo.jpg')).toString('base64');
+ context.Image=class{naturalWidth=180;naturalHeight=45;set src(value){queueMicrotask(()=>this.onload());}};
+ try{assert.equal(await P.optimizeImprint(jpeg),jpeg);assert.equal(await P.optimizeImprint(await P.optimizeImprint(jpeg)),jpeg);}finally{delete context.Image;}
+});

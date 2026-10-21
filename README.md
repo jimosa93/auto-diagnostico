@@ -37,6 +37,10 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 - Formulario de cinco pasos: vehículo, resultado, inspección, improntas y PDF.
 - Validación de campos esenciales y porcentajes.
 - Hallazgos editables, imágenes de improntas y firma dibujada o adjunta.
+- Improntas optimizadas a un máximo de 1000 × 300 px, conservando proporción y
+  sin ampliar imágenes pequeñas. JPEG con calidad de 84 % y ajuste hasta 76 %
+  cuando supera el objetivo de 140 KB. También se optimizan al exportar PDFs
+  de borradores antiguos; las que ya están compactas no se recomprimen.
 - Observaciones prioritarias en un solo campo de texto, compatible con borradores anteriores.
 - PDF con placa amarilla de letras negras y «COLOMBIA», referencia del vehículo
   destacada y estados en verde, ámbar o rojo (sin evaluar, gris).
