@@ -1,7 +1,7 @@
 (function(root){
 'use strict';
 const DEFAULT_CATEGORIES=[['documentos','Documentación',true],['general','Vista general',false],['habitaculo','Habitáculo',false],['instrumentos','Instrumentación',true],['identificacion','Identificación',true],['mecanica','Mecánica / parte inferior',false],['hallazgos','Hallazgos',true],['otros','Otros',false]];
-const PROFILES={compact:{dpi:160,detailDpi:220,name:'Compacto',max:1000,detail:1500,q:.72,dq:.84,budget:135000,detailBudget:320000},balanced:{dpi:200,detailDpi:280,name:'Equilibrado',max:1400,detail:2000,q:.82,dq:.90,budget:230000,detailBudget:480000},detail:{dpi:260,detailDpi:340,name:'Más detalle',max:2200,detail:2800,q:.92,dq:.95,budget:520000,detailBudget:900000}};
+const PROFILES={compact:{dpi:160,detailDpi:220,name:'Compacto',max:1000,detail:1500,q:.72,dq:.84,budget:135000,detailBudget:320000},balanced:{dpi:200,detailDpi:280,name:'Equilibrado',max:1400,detail:2000,q:.82,dq:.90,budget:230000,detailBudget:480000},detail:{dpi:260,detailDpi:340,min:1400,detailMin:2000,name:'Más detalle',max:2200,detail:2800,q:.92,dq:.95,budget:520000,detailBudget:900000}};
 function blank(){return {version:1,kind:'autodiagnostico-photos',plate:'',vehicle:'',service:'',package:'Paquete full diagnóstico',date:new Date().toLocaleDateString('sv-SE'),company:'AutoDiagnóstico',phones:'322 674 9787 · 310 757 4933',email:'autodiagnostico.peritajes@gmail.com',social:'instagram.com/autodiagnostico_cali/',logo:root.DEFAULT_LOGO||'',profile:'balanced',columns:4,layout:'classified',categories:DEFAULT_CATEGORIES.map(([id,name,detail])=>({id,name,detail})),photos:[]};}
 const uid=()=>root.crypto?.randomUUID?root.crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);
 const fmtBytes=n=>n>=1048576?(n/1048576).toLocaleString('es-CO',{maximumFractionDigits:2})+' MB':Math.max(1,Math.round(n/1024))+' KB';
@@ -33,7 +33,9 @@ function optimizationSettings(profile,protect=false,large=false,columns=null){
  if(columns!==null){
   const count=large?1:protect?2:([2,3,4].includes(+columns)?+columns:4);
   const width=(540-12*(count-1))/count,height=count===1?275:count===2?165:count===3?119:90;
-  max=Math.min(max,Math.ceil(Math.max(width,height)*(detail?p.detailDpi:p.dpi)/72));
+  // Keep enough pixels for zooming in the high-detail profile, even in small cells.
+  const minimum=(detail?p.detailMin:p.min)||0;
+  max=Math.min(max,Math.max(minimum,Math.ceil(Math.max(width,height)*(detail?p.detailDpi:p.dpi)/72)));
  }
  return {max,quality:detail?p.dq:p.q,budget:detail?p.detailBudget:p.budget,floor:detail?.78:.62};
 }

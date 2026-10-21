@@ -91,7 +91,11 @@ organización del archivo `Anexo_Fotografico_AutoDiagnostico.html`.
 El perfil Equilibrado usa aproximadamente 200 ppp para fotos generales y 280 ppp
 para detalles. Por ejemplo, cuatro fotos por fila requieren un lado mayor de
 hasta 350 px; una foto a todo el ancho puede usar hasta 2000 px. No se aumentan
-imágenes pequeñas. Los resultados dependen de cada imagen: revisa la legibilidad
+imágenes pequeñas. El perfil Más detalle conserva un objetivo mínimo de 1400 px
+para fotos generales y 2000 px para categorías de detalle, aunque se impriman
+pequeñas; las fotos a todo el ancho pueden llegar a 2550 px. Esos objetivos se
+limitan por la resolución original y el presupuesto de compresión de cada imagen.
+Los resultados dependen de cada imagen: revisa la legibilidad
 con la vista previa y usa Más detalle o Ampliar para números, daños o documentos.
 
 Los originales se conservan en este navegador si hay espacio. Descarga el
