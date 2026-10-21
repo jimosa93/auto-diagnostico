@@ -71,48 +71,67 @@ utilice el formulario; los borradores de otros dispositivos no se publican.
 
 ## Generador de anexos y herramientas PDF
 
-Disponible en `/generador/`, dentro del mismo despliegue de Vercel. El formulario
-principal incluye un enlace a esta herramienta.
+Disponible en `/generador/`, dentro del mismo despliegue de Vercel. Integra la
+organización del archivo `Anexo_Fotografico_AutoDiagnostico.html`.
 
-- **Anexo simple:** fotos en el orden elegido, con miniaturas, descripciones y
-  controles para ordenar o quitar archivos.
-- **Anexo clasificado:** las ocho categorías del aplicativo de escritorio. Cada
-  categoría comienza en una página nueva; las fotos conservan su orden dentro de
-  la categoría. Se puede elegir entre 2, 4 o 6 fotos por página A4.
-- **Unir PDFs:** valida los archivos y concatena sus páginas en el orden elegido.
-  No conserva firmas digitales, marcadores ni funciones de formularios.
-- **Texto de Word a PDF:** extrae el texto principal de `.docx`, permite revisarlo
-  y genera un PDF sencillo. No reproduce imágenes, tablas, encabezados ni la
-  maquetación de Word. Los `.doc` antiguos no son compatibles. Los caracteres que
-  Helvetica no admite (por ejemplo, algunos emojis) se sustituyen por `?`.
+- Ocho categorías iniciales, categorías nuevas y nombres/orden editables.
+- Orden, categoría, descripción, giro y ampliación individual de fotografías.
+- PDF tamaño carta, por categorías o simple, con 2, 3 o 4 fotos por fila.
+  Las categorías marcadas «Más detalle» usan dos fotos por fila en el modo
+  clasificado. «Ampliar en PDF» usa el ancho completo.
+- Tres perfiles de compresión: Compacto, Equilibrado y Más detalle. Se calculan
+  las dimensiones según el espacio de impresión y se exporta JPEG, conservando
+  proporción y encuadre. Cada exportación parte del original, sin acumular pérdidas.
+- Vista previa del PDF, descarga y ZIP de fotos optimizadas organizado por categorías.
+- Borrador automático en IndexedDB y exportación/importación de ZIP con los
+  originales intactos, descripciones, categorías, giro y configuración.
+- Logo, datos del centro y membrete editables; selección múltiple y captura desde
+  cámara cuando el navegador lo permite.
 
-Usa **Probar con imágenes de demostración** para explorar los dos tipos de
-anexos sin seleccionar archivos. Las imágenes se identifican como ilustraciones
-sin valor de inspección. Después pulsa **Generar PDF** y abre la vista previa o
-la descarga.
+El perfil Equilibrado usa aproximadamente 200 ppp para fotos generales y 280 ppp
+para detalles. Por ejemplo, cuatro fotos por fila requieren un lado mayor de
+hasta 350 px; una foto a todo el ancho puede usar hasta 2000 px. No se aumentan
+imágenes pequeñas. Los resultados dependen de cada imagen: revisa la legibilidad
+con la vista previa y usa Más detalle o Ampliar para números, daños o documentos.
 
-Los archivos de esta herramienta solo viven en la memoria de la pestaña. No se
-sincronizan con el borrador del formulario principal ni se guardan al recargar.
-Las fotos se reducen a un máximo de 1800 píxeles en su lado mayor y se convierten
-a JPEG para limitar el tamaño del PDF; conserva los originales por separado.
+Los originales se conservan en este navegador si hay espacio. Descarga el
+borrador ZIP como respaldo o para continuar en otro dispositivo; el ZIP de
+**fotos optimizadas** no sustituye ese respaldo. El borrador del anexo es
+independiente del formulario principal. Las fotos se procesan en el dispositivo,
+sin servicios externos ni almacenamiento en el servidor.
 
-Límites del prototipo: 80 fotos por modalidad, 20 MB por foto; 30 PDFs, 100 MB por
-PDF y 150 MB acumulados; `.docx` de 10 MB, XML principal de 5 MB y hasta 250.000
-caracteres. Los límites no garantizan memoria suficiente en todos los celulares.
+Límites: 200 fotos, 40 MB por imagen, 600 MB de originales y 30 categorías.
+La memoria disponible puede imponer límites menores, especialmente en móviles.
+JPG, PNG y WebP funcionan con los decodificadores del navegador. HEIC/HEIF se
+intenta abrir de forma nativa y, si hace falta, con el conversor local incluido;
+la compatibilidad depende del archivo y del navegador.
 
-Las bibliotecas `pdf-lib 1.17.1`, `JSZip 3.10.1` y el visor `PDF.js 5.6.205` se sirven desde `generador/vendor/`,
-con sus licencias. No hay llamadas a servicios externos de conversión.
+Las herramientas anteriores siguen disponibles en `/generador/documentos/`:
+
+- `?modo=merge`: une PDFs en el orden elegido. No conserva firmas digitales,
+  marcadores ni funciones de formularios. Máximo 30 archivos, 100 MB por PDF y
+  150 MB acumulados.
+- `?modo=word`: extrae y permite editar el texto principal de `.docx` para crear
+  un PDF sencillo. No reproduce imágenes, tablas ni la maquetación de Word.
+  Máximo 10 MB, XML principal de 5 MB y 250.000 caracteres. Los caracteres que
+  Helvetica no admite se sustituyen por `?`.
+
+Los documentos de estas dos herramientas viven en memoria hasta cerrar/recargar
+la pestaña. Las bibliotecas y sus licencias se sirven desde `generador/vendor/`.
+Para usar el generador localmente, sírvelo por HTTP con el comando anterior;
+no abras sus archivos directamente mediante `file://`.
 
 ### Verificación
 
 Con Node.js instalado:
 
 ```sh
-node --test tests/generador.test.cjs
+node --test tests/*.test.cjs
 ```
 
-Las pruebas comprueban paginación, imágenes por página, categorías, validación,
-orden y dimensiones al unir PDFs, y texto extenso. Para revisar visualmente, sirve
-el repositorio con el comando local indicado arriba y abre `/generador/`.
+Las pruebas cubren perfiles y dimensiones, validación de borradores, categorías,
+paginación, fotos ampliadas, unión de PDFs y texto extenso. También se verificaron
+en navegador el PDF, su vista previa y ZIP con una imagen de prueba de 24 MP,
+la recuperación local y la integridad de originales exportados.
 
 El análisis del archivo compilado está en `docs/revision-generador.md`.

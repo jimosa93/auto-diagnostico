@@ -9,3 +9,8 @@ under pdfjs/, with their corresponding license files.
 
 Distributions copied from the installed Codex workspace dependency bundle.
 Their license notices are included alongside the distribution files.
+
+heic2any: https://github.com/alexcorvi/heic2any (MIT, see heic2any-LICENSE.txt).
+The browser bundle is taken from the supplied Anexo_Fotografico_AutoDiagnostico.html;
+its exact version is not declared in that file. It is loaded only when the native
+image decoder cannot read a HEIC/HEIF file. Format variants may remain unsupported.
