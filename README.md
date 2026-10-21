@@ -38,7 +38,9 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 - Validación de campos esenciales y porcentajes.
 - Hallazgos editables, imágenes de improntas y firma dibujada o adjunta.
 - Observaciones prioritarias en un solo campo de texto, compatible con borradores anteriores.
-- PDF con placa destacada, concepto después del resultado en la primera hoja y
+- PDF con placa amarilla de letras negras y «COLOMBIA», referencia del vehículo
+  destacada y estados en verde, ámbar o rojo (sin evaluar, gris).
+- Concepto después del resultado en la primera hoja y
   porcentajes en negrilla: verde desde 80 %, amarillo desde 65 % y rojo por debajo
   de 65 %. El dictamen sigue siendo seleccionado por el perito.
 - Hoja final de cláusulas con el contenido de `CLAUSULAS.pdf`, incluida siempre

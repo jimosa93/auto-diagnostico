@@ -57,3 +57,16 @@ test('a concept longer than one page continues without dropping text',async()=>{
  assert(texts.slice(1,-1).join(' ').includes('FIN CONCEPTO'));
  assert(texts.at(-1).includes('CLÁUSULAS Y ALCANCE'));
 });
+test('status colors survive wrapped table cells and agree with summary and technical detail',async()=>{
+ const tones={APROBADO:[.06,.40,.28],'APROBADO CON OBSERVACIONES':[.60,.36,.03],'NO APROBADO':[.68,.13,.13],'SIN EVALUAR':[.36,.42,.51]};
+ for(const [state,color] of Object.entries(tones)){
+  const d=P.example();d.result=state;d.bodyState=state;d.chassisState=state;
+  const {pages}=await render(d);
+  const statusRuns=pages.slice(0,2).flat().filter(t=>t.text===state||(state==='APROBADO CON OBSERVACIONES'&&['APROBADO CON','OBSERVACIONES'].includes(t.text)));
+  assert(statusRuns.length>=5,state);
+  for(const t of statusRuns){assert(t.font.name.includes('Bold'));assert.deepEqual([t.color.red,t.color.green,t.color.blue],color);}
+  const plate=pages[0].find(t=>t.text===d.plate&&t.y>700);assert(plate.x>=442&&plate.x+plate.font.widthOfTextAtSize(plate.text,plate.size)<=576);assert.equal(plate.color.red,0);
+  assert(pages[0].some(t=>t.text==='COLOMBIA'));
+  const vehicle=pages[0].find(t=>t.text.startsWith('Nissan March'));assert(vehicle.font.name.includes('Bold'));assert.equal(vehicle.size,15);
+ }
+});
