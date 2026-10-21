@@ -37,7 +37,14 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 - Formulario de cinco pasos: vehículo, resultado, inspección, improntas y PDF.
 - Validación de campos esenciales y porcentajes.
 - Hallazgos editables, imágenes de improntas y firma dibujada o adjunta.
-- PDF con logo, datos del centro y páginas adicionales para textos extensos.
+- Observaciones prioritarias en un solo campo de texto, compatible con borradores anteriores.
+- PDF con placa destacada, concepto después del resultado en la primera hoja y
+  porcentajes en negrilla: verde desde 80 %, amarillo desde 65 % y rojo por debajo
+  de 65 %. El dictamen sigue siendo seleccionado por el perito.
+- Hoja final de cláusulas con el contenido de `CLAUSULAS.pdf`, incluida siempre
+  en la vista previa y la descarga del peritaje.
+- PDF con logo, datos del centro y páginas adicionales para textos extensos;
+  los conceptos muy largos continúan en la siguiente página sin recortar texto.
 - Borrador automático en el navegador y exportación/importación como JSON.
 - Descarga del formulario HTML para utilizarlo sin conexión.
 
