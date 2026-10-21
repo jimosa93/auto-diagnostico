@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#214acc"><meta name="description" content="Crea anexos fotográficos, organiza tus PDFs y extrae el texto de documentos Word con AutoDiagnóstico.">
+  <title>Generador de anexos · AutoDiagnóstico</title>
+  <link rel="icon" href="/generador/logo.png"><link rel="stylesheet" href="/generador/styles.css">
+  <script defer src="/generador/vendor/pdf-lib.min.js"></script><script defer src="/generador/vendor/jszip.min.js"></script>
+  <script defer src="/generador/pdf.js"></script><script defer src="/generador/app.js"></script>
+</head>
+<body>
+<header class="topbar"><div class="topbar-inner"><a href="/" aria-label="Volver al formulario de peritaje"><img src="/generador/logo.png" alt="AutoDiagnóstico"></a><span class="brand-note">PERITAJE AUTOMOTRIZ<br><strong>Herramientas del informe</strong></span><a class="back-link" href="/">← Formulario de peritaje</a></div></header>
+<main>
+  <div class="intro"><div><p class="eyebrow">DEL REGISTRO AL INFORME</p><h1>Generador de anexos</h1><p>Organiza la evidencia y completa tu expediente en un solo lugar.</p></div><span class="badge">Prototipo web</span></div>
+  <nav class="tool-nav" aria-label="Herramientas">
+    <button type="button" data-mode="simple" aria-pressed="true"><span class="tool-number">01</span><strong>Anexo simple</strong><small>Fotos en el orden que elijas</small></button>
+    <button type="button" data-mode="classified" aria-pressed="false"><span class="tool-number">02</span><strong>Anexo clasificado</strong><small>Evidencia por categoría</small></button>
+    <button type="button" data-mode="merge" aria-pressed="false"><span class="tool-number">03</span><strong>Unir PDFs</strong><small>Un expediente, varios archivos</small></button>
+    <button type="button" data-mode="word" aria-pressed="false"><span class="tool-number">04</span><strong>Texto de Word a PDF</strong><small>Extrae el texto de un .docx</small></button>
+  </nav>
+  <div id="notice" class="notice" role="status" hidden></div>
+  <div class="workspace">
+    <section class="editor card" aria-labelledby="tool-title">
+      <div class="section-heading"><div><p class="eyebrow" id="tool-kicker">ANEXO FOTOGRÁFICO</p><h2 id="tool-title">La evidencia, foto a foto</h2><p id="tool-description" class="muted">Agrega fotografías, revisa su orden y añade una descripción opcional.</p></div></div>
+      <div id="photo-tool">
+        <fieldset class="vehicle"><legend>Datos del vehículo</legend><div class="fields">
+          <label>Placa <span aria-hidden="true">*</span><input id="plate" maxlength="12" placeholder="Ej. ABC123" required autocomplete="off"></label>
+          <label>Marca<input id="brand" maxlength="60" placeholder="Ej. Chevrolet"></label>
+          <label>Línea<input id="line" maxlength="60" placeholder="Ej. Onix"></label>
+          <label>Modelo<input id="year" type="number" min="1900" max="2100" placeholder="2020"></label>
+          <label>N.º de servicio<input id="service" maxlength="40" placeholder="Ej. AD-137"></label>
+          <label>Fotos por página<select id="density"><option value="2">2 · Mayor detalle</option><option value="4" selected>4 · Equilibrado</option><option value="6">6 · Compacto</option></select></label>
+        </div></fieldset>
+        <div class="upload-box"><div class="upload-icon" aria-hidden="true">＋</div><h3>Agrega las fotografías del vehículo</h3><p>JPG, PNG o WebP · Hasta 20 MB por imagen y 80 fotos por anexo.</p>
+          <label id="category-field" hidden>Categoría de las nuevas fotos<select id="upload-category"></select></label>
+          <label class="file-button">Seleccionar fotografías<input id="photos-input" type="file" accept="image/jpeg,image/png,image/webp" multiple></label>
+          <button id="demo" type="button" class="text-button">Probar con imágenes de demostración</button>
+        </div>
+        <div class="list-heading"><h3 id="photo-count">Fotografías (0)</h3><span class="muted">Ordena con ↑ y ↓</span></div>
+        <div id="photo-list" class="photo-list"></div>
+      </div>
+      <div id="merge-tool" hidden>
+        <div class="upload-box"><div class="upload-icon" aria-hidden="true">＋</div><h3>Reúne los documentos del expediente</h3><p>Agrega el peritaje y sus anexos. Se unirán en el orden de esta lista.</p><label class="file-button">Seleccionar PDFs<input id="pdfs-input" type="file" accept="application/pdf,.pdf" multiple></label><p>Hasta 100 MB por PDF, 150 MB en total y 30 archivos.</p></div>
+        <p class="hint">Se copian las páginas. Las firmas digitales, formularios interactivos y marcadores no se conservan como funciones del documento original. Los PDFs protegidos con contraseña no son compatibles.</p>
+        <div id="pdf-list" class="pdf-list"></div>
+      </div>
+      <div id="word-tool" hidden>
+        <div class="info-box"><strong>Conversión de texto, con formato sencillo</strong><p>El PDF incluirá el texto principal del documento. No conserva fotografías, tablas como tablas, encabezados, firmas ni el diseño original de Word. Para conservarlo, exporta el PDF desde Word y usa «Unir PDFs».</p></div>
+        <label class="file-button">Seleccionar documento .docx<input id="word-input" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"></label>
+        <p id="word-name" class="hint">Hasta 10 MB. Los archivos .doc antiguos no son compatibles. Algunos símbolos, como emojis, pueden aparecer como «?» en el PDF.</p>
+        <label class="word-label" for="word-text">Texto extraído · puedes revisarlo y editarlo</label><textarea id="word-text" rows="16" maxlength="250000" placeholder="El texto aparecerá aquí al seleccionar un documento .docx."></textarea>
+      </div>
+    </section>
+    <aside>
+      <section class="summary"><p class="eyebrow">TU DOCUMENTO</p><h2 id="summary-title">Anexo fotográfico</h2><div class="summary-plate" id="summary-plate">SIN PLACA</div><p id="summary-count">Sin fotografías</p><div class="summary-rule"></div><p id="summary-detail">Formato A4 · 4 fotos por página</p><button id="generate" type="button" class="primary">Generar PDF</button><p id="progress" role="status" aria-live="polite"></p></section>
+      <section class="local-note"><span class="local-dot"></span><strong>Archivos en tu dispositivo</strong><p>Se procesan en este navegador. Esta herramienta no guarda un borrador: descarga tu PDF antes de cerrar o recargar.</p></section>
+      <section id="result" class="result card" hidden><span class="success-label">✓ PDF listo</span><h3 id="result-name">Tu documento</h3><a id="download" class="file-button">Descargar PDF</a><a id="open-pdf" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a><button id="show-preview" type="button">Ver vista previa aquí</button><p class="hint">En celular, abre el PDF y usa Compartir para guardarlo.</p></section>
+    </aside>
+  </div>
+  <section id="preview-section" class="card preview-section" hidden><div class="list-heading"><h2>Vista previa del PDF</h2><button id="close-preview" type="button">Cerrar vista previa</button></div><div class="preview-toolbar"><button id="preview-prev" type="button" aria-label="Página anterior">← Anterior</button><span id="preview-page" role="status">Cargando PDF…</span><button id="preview-next" type="button" aria-label="Página siguiente">Siguiente →</button></div><div id="pdf-preview" class="pdf-canvas-wrap"><canvas id="preview-canvas" role="img" aria-label="Página del PDF generado"></canvas></div><p class="hint">Puedes recorrer las páginas aquí o abrir y descargar el documento completo.</p></section>
+  <footer><span>AutoDiagnóstico · Tu tranquilidad, nuestra experiencia.</span><a href="/">Volver al peritaje</a></footer>
+</main>
+<noscript><p class="notice">Activa JavaScript para usar el generador de anexos.</p></noscript>
+</body></html>
