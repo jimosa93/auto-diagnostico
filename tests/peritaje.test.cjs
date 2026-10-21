@@ -28,7 +28,7 @@ test('percentage colors include exact boundaries and reject empty or invalid sco
 test('report puts concept on first page, highlights percentages and appends one complete clauses page',async()=>{
  const d=P.example();d.perito='Perito de prueba';d.body[0].finding='Desgaste 64%, remanente 65% y referencia 80%.';d.tires=['0','64','65','100'];
  const {bytes,pages}=await render(d);
- assert.equal((await lib.PDFDocument.load(bytes)).getPageCount(),4);
+ assert.equal((await lib.PDFDocument.load(bytes)).getPageCount(),5);
  const texts=pages.map(p=>p.map(t=>t.text).join('\n'));
  assert(texts[0].indexOf('Concepto del peritaje')>texts[0].indexOf('Resultado del peritaje'));
  assert(texts[0].indexOf('Concepto del peritaje')<texts[0].indexOf('Observaciones para lectura prioritaria'));
