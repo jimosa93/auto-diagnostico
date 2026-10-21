@@ -34,7 +34,7 @@ test('report puts concept on first page, highlights percentages and appends one 
  assert(texts[0].indexOf('Concepto del peritaje')<texts[0].indexOf('Observaciones para lectura prioritaria'));
  assert(texts[0].includes('Sistemas de identificación'));
  assert(pages[0].some(t=>t.text===d.plate&&t.size===24));
- for(const [score,color] of [['64%',{red:.68,green:.13,blue:.13}],['65%',{red:.60,green:.36,blue:.03}],['80%',{red:.06,green:.40,blue:.28}]]){
+ for(const [score,color] of [['64%',{red:.68,green:.13,blue:.13}],['65%',{red:181/255,green:96/255,blue:0}],['80%',{red:.06,green:.40,blue:.28}]]){
   const t=pages[1].find(t=>t.text===score);assert(t,score);assert(t.font.name.includes('Bold'));assert(t.size>9.5);for(const key of Object.keys(color))assert.equal(t.color[key],color[key]);
  }
  for(const title of ['EVIDENCIA FOTOGRÁFICA','INFORMACIÓN DOCUMENTAL EXTERNA','ALCANCE DEL SERVICIO','CONDICIÓN DE LA INSPECCIÓN','METODOLOGÍA Y ACCESIBILIDAD','INSPECCIÓN SIN DESMONTAJE','FALLAS NO EVIDENCIABLES','DIAGNÓSTICO Y ESTIMACIONES','USO DEL INFORME'])assert(texts.at(-1).includes(title),title);
@@ -58,7 +58,7 @@ test('a concept longer than one page continues without dropping text',async()=>{
  assert(texts.at(-1).includes('CLÁUSULAS Y ALCANCE'));
 });
 test('status colors survive wrapped table cells and agree with summary and technical detail',async()=>{
- const tones={APROBADO:[.06,.40,.28],'APROBADO CON OBSERVACIONES':[.60,.36,.03],'NO APROBADO':[.68,.13,.13],'SIN EVALUAR':[.36,.42,.51]};
+ const tones={APROBADO:[.06,.40,.28],'APROBADO CON OBSERVACIONES':[181/255,96/255,0],'NO APROBADO':[.68,.13,.13],'SIN EVALUAR':[.36,.42,.51]};
  for(const [state,color] of Object.entries(tones)){
   const d=P.example();d.result=state;d.bodyState=state;d.chassisState=state;
   const {pages}=await render(d);

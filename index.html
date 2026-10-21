@@ -58,7 +58,7 @@ function stateTone(state){return state==='APROBADO'?'green':state==='APROBADO CO
 async function makePDF(d,lib){
  const {PDFDocument,StandardFonts,rgb}=lib||root.PDFLib;
  const pdf=await PDFDocument.create();const regular=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
- const colors={ink:rgb(.06,.12,.22),muted:rgb(.36,.42,.51),blue:rgb(.10,.29,.78),pale:rgb(.96,.97,.99),line:rgb(.84,.87,.91),green:rgb(.06,.40,.28),amber:rgb(.60,.36,.03),red:rgb(.68,.13,.13),white:rgb(1,1,1)};
+ const colors={ink:rgb(.06,.12,.22),muted:rgb(.36,.42,.51),blue:rgb(.10,.29,.78),pale:rgb(.96,.97,.99),line:rgb(.84,.87,.91),green:rgb(.06,.40,.28),amber:rgb(181/255,96/255,0),red:rgb(.68,.13,.13),white:rgb(1,1,1)};
  const safe=t=>Array.from(String(t??'')).map(c=>{if(c==='\n'||c==='\r')return c;try{regular.encodeText(c);return c;}catch{return '?';}}).join('');
  const clean=t=>safe(String(t??'').replace(/\t/g,' ').replace(/\r/g,''));
  const imageCache=new Map();async function embed(src){if(!src)return null;if(imageCache.has(src))return imageCache.get(src);let im;try{im=src.startsWith('data:image/png')?await pdf.embedPng(src):await pdf.embedJpg(src);}catch{throw Error('No se pudo procesar una imagen. Vuelve a adjuntarla como JPG o PNG.');}imageCache.set(src,im);return im;}
