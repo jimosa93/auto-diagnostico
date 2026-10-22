@@ -42,8 +42,10 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
   todas las opciones; ↓/↑ recorren la lista, Enter selecciona y Escape cierra.
   Alt+↓ permite abrirla desde el teclado. Los hallazgos admiten varias líneas.
 - Fugas en filas editables de sistema y hallazgo, con motor, caja de velocidades,
-  dirección hidráulica y sistema refrigerante como elementos iniciales. Los
-  hallazgos quedan vacíos hasta que el perito los diligencia.
+  dirección hidráulica y refrigerante como elementos iniciales. El selector
+  ofrece nueve sistemas y componentes; sus hallazgos tienen un catálogo propio:
+  Humedad, Fuga, Fuga con goteo, No aplica y Sin novedades. Los hallazgos quedan
+  vacíos hasta que el perito los diligencia.
 - Observaciones generales en un textarea; responsable y firma en Inspección.
 - Observación de llantas debajo de su tabla y Observaciones adicionales debajo
   de las generales. Ambos campos son opcionales: el PDF omite cada título y
