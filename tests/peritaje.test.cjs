@@ -28,7 +28,7 @@ test('percentage colors include exact boundaries and reject empty or invalid sco
 test('report puts concept on first page, highlights percentages and appends one complete clauses page',async()=>{
  const d=P.example();d.perito='Perito de prueba';d.body[0].finding='Desgaste 64%, remanente 65% y referencia 80%.';d.tires=['0','64','65','100'];
  const {bytes,pages}=await render(d);
- assert.equal((await lib.PDFDocument.load(bytes)).getPageCount(),5);
+ assert.equal((await lib.PDFDocument.load(bytes)).getPageCount(),4);
  const texts=pages.map(p=>p.map(t=>t.text).join('\n'));
  assert(texts[0].indexOf('Concepto del peritaje')>texts[0].indexOf('Resultado del peritaje'));
  assert(texts[0].indexOf('Concepto del peritaje')<texts[0].indexOf('Observaciones para lectura prioritaria'));
@@ -78,4 +78,37 @@ test('already compact JPEG imprints are reused byte for byte on repeat export',a
  const jpeg='data:image/jpeg;base64,'+fs.readFileSync(require('node:path').join(__dirname,'fixtures/photo.jpg')).toString('base64');
  context.Image=class{naturalWidth=180;naturalHeight=45;set src(value){queueMicrotask(()=>this.onload());}};
  try{assert.equal(await P.optimizeImprint(jpeg),jpeg);assert.equal(await P.optimizeImprint(await P.optimizeImprint(jpeg)),jpeg);}finally{delete context.Image;}
+});
+test('short leaks stay below side-by-side chassis and tires on the technical page',async()=>{
+ const d=P.example();d.leaks='MOTOR-FUGA\nCAJA-FUGA\nHIDRÁULICO-FUGA\nREFRIGERANTE-FUGA';d.chassisState='APROBADO CON OBSERVACIONES';
+ const {pages}=await render(d);assert.equal(pages.length,4);
+ const technical=pages[1],chassis=technical.find(t=>t.text==='Chasis y estructura'),tires=technical.find(t=>t.text==='Llantas'),leaks=technical.find(t=>t.text==='Fugas');
+ assert.equal(chassis.x,36);assert.equal(tires.x,318);assert.equal(chassis.y,tires.y);assert(leaks.y<chassis.y);
+ assert(technical.some(t=>t.text==='REFRIGERANTE-FUGA'));
+ const columnBody=technical.filter(t=>t.y<chassis.y&&t.y>leaks.y);
+ for(const t of columnBody)assert(t.x+t.font.widthOfTextAtSize(t.text,t.size)<=(t.x<318?294:576)+.01,`Column overflow: ${t.text}`);
+});
+test('stacked layout stays when everything fits or body already needs continuation',async()=>{
+ for(const count of [3,16,35]){
+  const d=P.example();d.body=Array.from({length:count},(_,i)=>({element:'Elemento '+i,finding:'Hallazgo '+i}));d.leaks='Fuga de motor';
+  const {pages}=await render(d);const tires=pages.flat().find(t=>t.text==='Llantas');assert.equal(tires.x,36,`Body rows: ${count}`);
+  assert(pages.flat().some(t=>t.text==='Hallazgo '+(count-1)));
+  assert(pages.flat().some(t=>t.text==='Fuga de motor'));
+ }
+});
+test('long chassis and leaks keep full-width pagination and preserve their final text',async()=>{
+ for(const kind of ['chassis','leaks']){
+  const d=P.example();if(kind==='chassis')d.chassis=[{element:'Cuna',finding:'Detalle técnico. '.repeat(600)+'FIN CHASIS'}];else d.leaks='Fuga observada. '.repeat(600)+'FIN FUGAS';
+  const {pages}=await render(d);assert.equal(pages.flat().find(t=>t.text==='Llantas').x,36);
+  assert(pages.slice(1,-1).flat().map(t=>t.text).join(' ').replace(/\s+/g,' ').includes(kind==='chassis'?'FIN CHASIS':'FIN FUGAS'));
+  assert(pages.at(-1).some(t=>t.text==='04 / CLÁUSULAS Y ALCANCE'));
+ }
+});
+test('near page boundaries columns never spill into the footer or lose leak lines',async()=>{
+ for(const count of [9,10,11,12,13,14])for(const leakLines of [1,4,12]){
+  const d=P.example();d.body=Array.from({length:count},(_,i)=>({element:'Pieza '+i,finding:'Hallazgo reportado'}));d.leaks=Array.from({length:leakLines},(_,i)=>'Fuga '+i).join('\n');
+  const {pages}=await render(d);const technical=pages.slice(1,-1).flat();for(let i=0;i<leakLines;i++)assert(technical.some(t=>t.text==='Fuga '+i));
+  for(const t of technical.filter(t=>t.size>=9))assert(t.y>=78,`Footer overlap: ${count}/${leakLines}: ${t.text}`);
+  const columnPage=pages.find(p=>p.some(t=>t.text==='Llantas'&&t.x===318));if(columnPage)assert(columnPage.some(t=>t.text==='Fuga '+(leakLines-1)));
+ }
 });

@@ -49,6 +49,9 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
   de 65 %. El dictamen sigue siendo seleccionado por el perito.
 - Hoja final de cláusulas con el contenido de `CLAUSULAS.pdf`, incluida siempre
   en la vista previa y la descarga del peritaje.
+- Distribución automática del detalle técnico: chasis y llantas se colocan en
+  dos columnas solo cuando permite conservar Fugas en esa misma hoja. Si hay
+  demasiados elementos o texto, se mantiene una columna con páginas adicionales.
 - PDF con logo, datos del centro y páginas adicionales para textos extensos;
   los conceptos muy largos continúan en la siguiente página sin recortar texto.
 - Borrador automático en el navegador y exportación/importación como JSON.
