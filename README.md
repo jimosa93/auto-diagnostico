@@ -1,7 +1,7 @@
 # AutoDiagnóstico · Prototipo de peritaje automotriz
 
 Aplicación estática para diligenciar una inspección vehicular y descargar su
-informe PDF. Conserva el diseño y las funciones del formulario HTML original.
+informe PDF. Incluye el diseño del informe y la estructura de secciones acordados con el cliente.
 No requiere React, instalación de dependencias, servidor de aplicación ni base
 de datos. El logo y la biblioteca de generación de PDF están incluidos en
 `index.html`.
@@ -34,47 +34,67 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 
 ## Funciones incluidas
 
-- Formulario de cinco pasos: vehículo, resultado, inspección, improntas y PDF.
-- Validación de campos esenciales y porcentajes.
-- Calificación general de llantas en el PDF: promedio de los cuatro porcentajes,
-  con el color del rango y hasta dos decimales. Si falta algún valor, queda pendiente.
-- Selectores con búsqueda y texto libre en los elementos y hallazgos de carrocería
-  y chasis: 83 elementos de carrocería, 34 de estructura y 32 hallazgos sugeridos.
-  Búsqueda sin distinguir tildes o mayúsculas, con equivalencias como bumper /
-  paragolpes y Bueno → Bien. La flecha abre todas las opciones; las teclas ↓/↑
-  recorren la lista, Enter selecciona y Escape cierra. Alt+↓ abre la lista desde
-  el teclado, incluso en hallazgos de varias líneas. Los hallazgos permiten
-  varias líneas y los borradores anteriores conservan sus textos originales.
-- Hallazgos editables, imágenes de improntas y firma dibujada o adjunta.
-- Improntas optimizadas a un máximo de 1000 × 300 px, conservando proporción y
-  sin ampliar imágenes pequeñas. JPEG con calidad de 84 % y ajuste hasta 76 %
-  cuando supera el objetivo de 140 KB. También se optimizan al exportar PDFs
-  de borradores antiguos; las que ya están compactas no se recomprimen.
-- Observaciones prioritarias en un solo campo de texto, compatible con borradores anteriores.
-- PDF con placa amarilla de letras negras y «COLOMBIA», referencia del vehículo
-  destacada y estados en verde, ámbar o rojo (sin evaluar, gris).
-- Concepto después del resultado en la primera hoja y
-  porcentajes en negrilla: verde desde 80 %, amarillo desde 65 % y rojo por debajo
-  de 65 %. El dictamen sigue siendo seleccionado por el perito.
-- Encabezado principal en la primera página y compacto en las siguientes, con
-  título y servicio centrados y logo y placa más pequeños.
-- Hoja final de cláusulas con el contenido de `CLAUSULAS.pdf`, sin encabezado
-  vehicular y con letra y espaciado ampliados. Se incluye siempre en la vista
-  previa y la descarga del peritaje.
-- Distribución automática del detalle técnico: chasis y llantas se colocan en
-  dos columnas solo cuando permite conservar Fugas en esa misma hoja. Si hay
-  demasiados elementos o texto, se mantiene una columna con páginas adicionales.
-- PDF con logo, datos del centro y páginas adicionales para textos extensos;
-  los conceptos muy largos continúan en la siguiente página sin recortar texto.
-- Borrador automático en el navegador y exportación/importación como JSON.
-- Descarga del formulario HTML para utilizarlo sin conexión.
+- Formulario de cinco pasos: vehículo, resultado, inspección y responsable,
+  fotografías y PDF. Incluye combustible y clase / carrocería.
+- Selectores con búsqueda y texto libre: 83 elementos de carrocería, 34 de
+  estructura y 32 hallazgos sugeridos. La búsqueda reconoce tildes, mayúsculas
+  y equivalencias como bumper / paragolpes y Bueno → Bien. La flecha muestra
+  todas las opciones; ↓/↑ recorren la lista, Enter selecciona y Escape cierra.
+  Alt+↓ permite abrirla desde el teclado. Los hallazgos admiten varias líneas.
+- Fugas en filas editables de sistema y hallazgo, con motor, caja de velocidades,
+  dirección hidráulica y sistema refrigerante como elementos iniciales. Los
+  hallazgos quedan vacíos hasta que el perito los diligencia.
+- Observaciones generales en un textarea; responsable y firma en Inspección.
+- Anexo fotográfico con dos espacios iniciales y botones para agregar, quitar
+  y ordenar fotografías. Descripciones opcionales, sin títulos fijos VIN/Serie.
+- Fotos optimizadas dentro de 1400 × 1000 px, conservando proporción y sin ampliar
+  originales pequeños. JPEG con calidad de 84 %, ajustable hasta 76 % al superar
+  el objetivo de 300 KB. Las fotos ya compactas se reutilizan sin recomprimir.
+- Borrador automático local, exportación/importación JSON y formulario HTML
+  descargable para trabajar sin conexión.
+
+### Estructura del informe
+
+1. **Resumen del peritaje:** resultado y calificaciones, información general del
+   servicio, concepto y datos del vehículo.
+2. **Inspección visual y estructural:** carrocería a la izquierda y chasis a la
+   derecha. Las columnas continúan de forma independiente cuando hay muchos
+   hallazgos. Las filas cortas se mantienen juntas; las extensas pueden continuar.
+3. **Mecánica y cierre técnico:** llantas y promedio de sus cuatro porcentajes,
+   fugas, observaciones generales, información adicional y firma del responsable.
+4. **Anexo fotográfico:** solo fotos adjuntas, en dos columnas, con hasta seis por
+   página con descripciones breves. Las descripciones más largas pueden reducir
+   esa cantidad. Si no hay fotos adjuntas, se omite el anexo vacío.
+5. **Cláusulas y alcance:** siempre al final, en una página sin encabezado vehicular.
+
+Cada bloque comienza en página nueva. Los números anteriores identifican las
+secciones: si hay continuaciones, su página física puede variar. El footer indica
+la numeración real. No se imprimen los rótulos «Hoja 2», «Hoja 3» o «Hoja 4».
+
+Se mantienen la placa amarilla, el encabezado principal y los encabezados
+compactos de continuación, el logo y los datos de contacto. Las calificaciones
+van en negrilla: verde desde 80 %, ámbar desde 65 % y rojo por debajo de 65 %.
+El promedio de llantas queda pendiente si falta alguno de sus cuatro valores.
+El dictamen siempre lo selecciona el perito.
+
+### Compatibilidad de borradores
+
+Los borradores anteriores (versión 1) se migran a versión 2 al abrirse. Las
+improntas adjuntas pasan al anexo y sus códigos se conservan como descripciones;
+los códigos antiguos sin imagen aparecen en Registros adicionales del cierre.
+Las etiquetas originales permanecen en los datos del borrador. Fugas en texto
+libre se conserva en Observaciones adicionales de fugas, sin asignar estados
+por sistema automáticamente. Los hallazgos, observaciones, firma e información
+adicional conservan sus textos. El formulario admite borradores JSON de hasta
+100 MB; la memoria y el almacenamiento disponibles dependen del navegador.
 
 ## Recorrido de prueba
 
 1. Completa los datos del vehículo o pulsa **Cargar ejemplo de la plantilla**.
    El ejemplo contiene datos precargados; no corresponde a una inspección nueva.
 2. Revisa el resultado y modifica los hallazgos y porcentajes.
-3. Adjunta una impronta, escribe el nombre del perito y dibuja una firma.
+3. Completa las fugas y el responsable en Inspección, dibuja una firma y adjunta
+   fotografías en el siguiente paso. Prueba agregar, ordenar y quitar una foto.
 4. Pulsa **Generar PDF → Descargar PDF** y verifica los datos, las imágenes y la
    paginación. Comprueba también **Ver PDF**.
 5. Recarga la página y verifica que el borrador se conserva.
@@ -161,8 +181,9 @@ Con Node.js instalado:
 node --test tests/*.test.cjs
 ```
 
-Las pruebas cubren perfiles y dimensiones, validación de borradores, categorías,
-paginación, fotos ampliadas, unión de PDFs y texto extenso. También se verificaron
+Las pruebas cubren perfiles y dimensiones, migración de borradores, selectores,
+columnas y continuaciones del peritaje, anexos dinámicos, categorías, fotos
+ampliadas, unión de PDFs y texto extenso. También se verificaron
 en navegador el PDF, su vista previa y ZIP con una imagen de prueba de 24 MP,
 la recuperación local y la integridad de originales exportados.
 

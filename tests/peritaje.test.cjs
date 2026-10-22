@@ -10,7 +10,7 @@ async function render(data){
  const pages=[];
  const instrumented={...lib,PDFDocument:{create:async()=>{
   const doc=await lib.PDFDocument.create(),addPage=doc.addPage.bind(doc);
-  doc.addPage=(...args)=>{const page=addPage(...args),texts=[];pages.push(texts);const draw=page.drawText.bind(page);page.drawText=(text,options)=>{texts.push({text,...options});return draw(text,options);};return page;};return doc;
+  doc.addPage=(...args)=>{const page=addPage(...args),texts=[];pages.push(texts);texts.images=[];const drawImage=page.drawImage.bind(page);page.drawImage=(image,options)=>{texts.images.push(options);return drawImage(image,options);};const draw=page.drawText.bind(page);page.drawText=(text,options)=>{texts.push({text,...options});return draw(text,options);};return page;};return doc;
  }}};
  const bytes=await P.makePDF(data,instrumented);return {bytes,pages};
 }
@@ -30,8 +30,8 @@ test('report puts concept on first page, highlights percentages and appends one 
  const {bytes,pages}=await render(d);
  assert.equal((await lib.PDFDocument.load(bytes)).getPageCount(),4);
  const texts=pages.map(p=>p.map(t=>t.text).join('\n'));
- assert(texts[0].indexOf('Concepto del peritaje')>texts[0].indexOf('Resultado del peritaje'));
- assert(texts[0].indexOf('Concepto del peritaje')<texts[0].indexOf('Observaciones para lectura prioritaria'));
+ assert(texts[0].indexOf('Concepto del peritaje')>texts[0].indexOf('Resumen del peritaje'));
+ assert(texts[0].indexOf('Concepto del peritaje')<texts[0].indexOf('Información del vehículo'));assert(!texts[0].includes('Observaciones generales'));assert(texts[2].includes('Observaciones generales'));
  assert(texts[0].includes('Sistemas de identificación'));
  assert(pages[0].some(t=>t.text===d.plate&&t.size===24));
  for(const [score,color] of [['64%',{red:.68,green:.13,blue:.13}],['65%',{red:181/255,green:96/255,blue:0}],['80%',{red:.06,green:.40,blue:.28}]]){
@@ -70,47 +70,38 @@ test('status colors survive wrapped table cells and agree with summary and techn
   const vehicle=pages[0].find(t=>t.text.startsWith('Nissan March'));assert(vehicle.font.name.includes('Bold'));assert.equal(vehicle.size,15);
  }
 });
-test('imprints fit their printed rectangle without upscaling or changing orientation',()=>{
- for(const [w,h,expected] of [[6000,4000,{width:450,height:300}],[6000,1000,{width:1000,height:167}],[2000,6000,{width:100,height:300}],[180,45,{width:180,height:45}]])assert.deepEqual(P.imprintSize(w,h),expected);
- for(const [w,h] of [[0,200],[100,-1],[Infinity,200]])assert.throws(()=>P.imprintSize(w,h),/dimensiones/);
+test('annex photos fit their printed rectangle without upscaling or changing orientation',()=>{
+ for(const [w,h,expected] of [[6000,4000,{width:1400,height:933}],[6000,1000,{width:1400,height:233}],[2000,6000,{width:333,height:1000}],[180,45,{width:180,height:45}]])assert.deepEqual(P.photoSize(w,h),expected);
+ for(const [w,h] of [[0,200],[100,-1],[Infinity,200]])assert.throws(()=>P.photoSize(w,h),/dimensiones/);
 });
-test('already compact JPEG imprints are reused byte for byte on repeat export',async()=>{
+test('already compact JPEG photos are reused byte for byte on repeat export',async()=>{
  const jpeg='data:image/jpeg;base64,'+fs.readFileSync(require('node:path').join(__dirname,'fixtures/photo.jpg')).toString('base64');
  context.Image=class{naturalWidth=180;naturalHeight=45;set src(value){queueMicrotask(()=>this.onload());}};
- try{assert.equal(await P.optimizeImprint(jpeg),jpeg);assert.equal(await P.optimizeImprint(await P.optimizeImprint(jpeg)),jpeg);}finally{delete context.Image;}
+ try{assert.equal(await P.optimizePhoto(jpeg),jpeg);assert.equal(await P.optimizePhoto(await P.optimizePhoto(jpeg)),jpeg);}finally{delete context.Image;}
 });
-test('short leaks stay below side-by-side chassis and tires on the technical page',async()=>{
- const d=P.example();d.leaks='MOTOR-FUGA\nCAJA-FUGA\nHIDRÁULICO-FUGA\nREFRIGERANTE-FUGA';d.chassisState='APROBADO CON OBSERVACIONES';
- const {pages}=await render(d);assert.equal(pages.length,4);
- const technical=pages[1],chassis=technical.find(t=>t.text==='Chasis y estructura'),tires=technical.find(t=>t.text==='Llantas'),leaks=technical.find(t=>t.text==='Fugas');
- assert.equal(chassis.x,36);assert.equal(tires.x,318);assert.equal(chassis.y,tires.y);assert(leaks.y<chassis.y);
- assert(technical.some(t=>t.text==='REFRIGERANTE-FUGA'));
- const columnBody=technical.filter(t=>t.y<chassis.y&&t.y>leaks.y);
- for(const t of columnBody)assert(t.x+t.font.widthOfTextAtSize(t.text,t.size)<=(t.x<318?294:576)+.01,`Column overflow: ${t.text}`);
+test('body and chassis use independent columns and mechanics starts on its own page',async()=>{
+ const {pages}=await render(P.example()),technical=pages[1],mechanics=pages[2];
+ const body=technical.find(t=>t.text==='Carrocería y pintura'),chassis=technical.find(t=>t.text==='Chasis y estructura');
+ assert.equal(body.x,36);assert.equal(chassis.x,318);assert.equal(body.y,chassis.y);
+ assert(mechanics.some(t=>t.text==='Estado de llantas'));assert(mechanics.some(t=>t.text==='Fugas de fluidos'));assert(mechanics.some(t=>t.text==='Firma del responsable'));
+ assert(!technical.some(t=>t.text==='Estado de llantas'));assert(!pages.flat().some(t=>/HOJA [234]/.test(t.text)));
 });
-test('stacked layout stays when everything fits or body already needs continuation',async()=>{
- for(const count of [3,16,35]){
-  const d=P.example();d.body=Array.from({length:count},(_,i)=>({element:'Elemento '+i,finding:'Hallazgo '+i}));d.leaks='Fuga de motor';
-  const {pages}=await render(d);const tires=pages.flat().find(t=>t.text==='Llantas');assert.equal(tires.x,36,`Body rows: ${count}`);
-  assert(pages.flat().some(t=>t.text==='Hallazgo '+(count-1)));
-  assert(pages.flat().some(t=>t.text==='Fuga de motor'));
+test('both inspection columns paginate long rows without losing endings or crossing their bounds',async()=>{
+ const d=P.example();d.body=Array.from({length:45},(_,i)=>({element:'Carrocería '+i,finding:'Hallazgo izquierdo '+i}));d.chassis=Array.from({length:35},(_,i)=>({element:'Estructura '+i,finding:'Hallazgo derecho '+i}));
+ d.body.push({element:'Pieza extensa',finding:'Detalle largo. '.repeat(500)+'FIN IZQUIERDA'});d.chassis.push({element:'Estructura extensa',finding:'Estructura larga. '.repeat(600)+'FIN DERECHA'});
+ const {pages}=await render(d),all=pages.flat().map(t=>t.text).join(' ').replace(/\s+/g,' ');
+ for(let i=0;i<45;i++)assert(all.includes('Hallazgo izquierdo '+i));for(let i=0;i<35;i++)assert(all.includes('Hallazgo derecho '+i));
+ for(const ending of ['FIN IZQUIERDA','FIN DERECHA'])assert(all.includes(ending));
+ const mechanicsIndex=pages.findIndex(p=>p.some(t=>t.text==='Estado de llantas'));assert(mechanicsIndex>2);
+ for(const page of pages.slice(1,mechanicsIndex))for(const t of page.filter(t=>t.y<650&&t.size>=9)){
+  assert(t.y>=78,`Footer overlap: ${t.text}`);assert(t.x+t.font.widthOfTextAtSize(t.text,t.size)<=(t.x<318?294:576)+.01,`Column overflow: ${t.text}`);
  }
 });
-test('long chassis and leaks keep full-width pagination and preserve their final text',async()=>{
- for(const kind of ['chassis','leaks']){
-  const d=P.example();if(kind==='chassis')d.chassis=[{element:'Cuna',finding:'Detalle técnico. '.repeat(600)+'FIN CHASIS'}];else d.leaks='Fuga observada. '.repeat(600)+'FIN FUGAS';
-  const {pages}=await render(d);assert.equal(pages.flat().find(t=>t.text==='Llantas').x,36);
-  assert(pages.slice(1,-1).flat().map(t=>t.text).join(' ').replace(/\s+/g,' ').includes(kind==='chassis'?'FIN CHASIS':'FIN FUGAS'));
-  assert(pages.at(-1).some(t=>t.text==='04 / CLÁUSULAS Y ALCANCE'));
- }
-});
-test('near page boundaries columns never spill into the footer or lose leak lines',async()=>{
- for(const count of [9,10,11,12,13,14])for(const leakLines of [1,4,12]){
-  const d=P.example();d.body=Array.from({length:count},(_,i)=>({element:'Pieza '+i,finding:'Hallazgo reportado'}));d.leaks=Array.from({length:leakLines},(_,i)=>'Fuga '+i).join('\n');
-  const {pages}=await render(d);const technical=pages.slice(1,-1).flat();for(let i=0;i<leakLines;i++)assert(technical.some(t=>t.text==='Fuga '+i));
-  for(const t of technical.filter(t=>t.size>=9))assert(t.y>=78,`Footer overlap: ${count}/${leakLines}: ${t.text}`);
-  const columnPage=pages.find(p=>p.some(t=>t.text==='Llantas'&&t.x===318));if(columnPage)assert(columnPage.some(t=>t.text==='Fuga '+(leakLines-1)));
- }
+test('long fluid findings and old free-text leaks keep their endings before clauses',async()=>{
+ const d=P.example();d.leakRows[0].finding='Estado del motor. '.repeat(600)+'FIN SISTEMA';d.leaks='Texto antiguo. '.repeat(600)+'FIN FUGAS';
+ const {pages}=await render(d),text=pages.slice(0,-1).flat().map(t=>t.text).join(' ').replace(/\s+/g,' ');
+ for(const ending of ['FIN SISTEMA','FIN FUGAS','Firma del responsable'])assert(text.includes(ending));
+ for(const p of pages)for(const t of p.filter(t=>t.size>=9))assert(t.y>=78,`Footer overlap: ${t.text}`);
 });
 test('only the first page has the large header; continuations are compact and clauses have none',async()=>{
  const d=P.example();d.service='AD-143';d.concept='Concepto técnico. '.repeat(300);d.body=Array.from({length:35},(_,i)=>({element:'Elemento '+i,finding:'Hallazgo'}));
@@ -120,10 +111,10 @@ test('only the first page has the large header; continuations are compact and cl
   const title=p.find(t=>t.text==='INFORME TÉCNICO VEHICULAR'),service=p.find(t=>t.text==='Servicio: AD-143'),plate=p.find(t=>t.text===d.plate&&t.y>700);
   for(const t of [title,service])assert(Math.abs(t.x+t.font.widthOfTextAtSize(t.text,t.size)/2-306)<.01);
   assert(service.font.name.includes('Bold'));assert(plate.size<firstPlate.size);
-  const section=p.find(t=>/^0[123] \/ /.test(t.text));assert(section.y>pages[0].find(t=>t.text==='01 / RESUMEN DE LA INSPECCIÓN').y);
+  const section=p.find(t=>/^0[1234] \/ /.test(t.text));assert(section.y>pages[0].find(t=>t.text==='01 / RESUMEN DEL PERITAJE').y);
  }
  const clauses=pages.at(-1);assert(!clauses.some(t=>['INFORME TÉCNICO VEHICULAR','Servicio: AD-143',d.plate,'COLOMBIA'].includes(t.text)));
- assert(clauses.some(t=>t.text==='04 / CLÁUSULAS Y ALCANCE'&&t.y>730));
+ assert(clauses.some(t=>t.text==='05 / CLÁUSULAS Y ALCANCE'&&t.y>730));
  assert(clauses.some(t=>t.size===9.2));assert(clauses.find(t=>t.text==='Cali – Valle del Cauca').y>=78);
 });
 test('tire average includes all four values, including zero, and stays pending for incomplete or invalid data',()=>{
@@ -132,13 +123,11 @@ test('tire average includes all four values, including zero, and stays pending f
  assert.equal(P.tireAverage(['80','80','80','81']),80.25);
  for(const values of [['80','80','','80'],['80','80',null,'80'],['80','80','101','80'],['80','80','-1','80'],['80','80','x','80'],['80','80','80']])assert.equal(P.tireAverage(values),null);
 });
-test('PDF places the colored tire average between its heading and table in both layouts',async()=>{
- for(const count of [3,11]){
-  const d=P.example();d.body=Array.from({length:count},(_,i)=>({element:'Pieza '+i,finding:'Hallazgo'}));d.tires=['25','45','75','95'];d.leaks='Fuga de motor\nFuga de caja\nFuga hidráulica\nFuga refrigerante';
-  const {pages}=await render(d),p=pages.find(p=>p.some(t=>t.text==='Llantas')),title=p.find(t=>t.text==='Llantas'),label=p.find(t=>t.text==='Calificación general: '),score=p.find(t=>t.text==='60%'),table=p.find(t=>t.text==='Posición');
-  assert.equal(title.x,count===3?36:318);assert.equal(label.x,title.x);assert(title.y>label.y&&label.y>table.y);assert.equal(score.color.red,.68);assert(score.font.name.includes('Bold'));
- }
- const d=P.example();d.tires=['80','','80','80'];const {pages}=await render(d);assert(pages.flat().some(t=>t.text==='Calificación general: pendiente (4 valores)'));
+test('mechanics page keeps the colored tire average between the title and table',async()=>{
+ const d=P.example();d.tires=['25','45','75','95'];const {pages}=await render(d),p=pages.find(p=>p.some(t=>t.text==='Estado de llantas'));
+ const title=p.find(t=>t.text==='Estado de llantas'),label=p.find(t=>t.text==='Calificación general: '),score=p.find(t=>t.text==='60%'),table=p.find(t=>t.text==='Posición');
+ assert.equal(title.x,36);assert.equal(label.x,title.x);assert(title.y>label.y&&label.y>table.y);assert.equal(score.color.red,.68);assert(score.font.name.includes('Bold'));
+ d.tires=['80','','80','80'];const pending=await render(d);assert(pending.pages.flat().some(t=>t.text==='Calificación general: pendiente (4 valores)'));
 });
 test('inspection catalogs search accents, word order and aliases without duplicate suggestions',()=>{
  for(const [kind,query,expected] of [['body','PARAGOLPES tras','Bómper trasero'],['body','bumper delantero','Bómper delantero'],['body','guardafango derecho','Guardafango delantero derecho'],['body','capota','Techo / capota'],['body','cinturon','Cinturón de seguridad'],['chassis','motor cuna','Cuna de motor'],['findings','bueno','Bien']])assert(P.suggestions(kind,query).includes(expected),query);
@@ -152,4 +141,35 @@ test('custom and legacy inspection text survives draft round-trip and PDF genera
  const roundTrip=P.normalize(JSON.parse(JSON.stringify(d)));assert.deepEqual(roundTrip.body,d.body);assert.deepEqual(roundTrip.chassis,d.chassis);
  const {pages}=await render(roundTrip),text=pages.flat().map(t=>t.text).join(' ');
  for(const expected of ['Guardafango izquierdo','Bueno','Pieza personalizada <especial>','Primera observación libre.','Segunda observación libre.','Hallazgo propio sin catálogo'])assert(text.includes(expected),expected);
+});
+
+test('v1 drafts migrate photos, codes and free-text leaks without changing findings or inventing statuses',()=>{
+ const jpeg='data:image/jpeg;base64,'+fs.readFileSync(require('node:path').join(__dirname,'fixtures/photo.jpg')).toString('base64');
+ const old={...P.example(),version:1,leaks:'Motor: fuga antigua',imprints:[{label:'VIN',code:'ABC123',image:jpeg},{label:'Serie',code:'SERIE SIN FOTO',image:''},{label:'Motor',code:'',image:''}]};delete old.photos;delete old.leakRows;
+ const migrated=P.normalize(old);assert.equal(migrated.version,2);assert.equal(migrated.photos.length,2);assert.equal(migrated.photos[0].image,jpeg);assert.equal(migrated.photos[0].caption,'ABC123');assert.equal(migrated.photos[0].legacyLabel,'VIN');assert.equal(migrated.photos[1].caption,'SERIE SIN FOTO');assert.equal(migrated.leaks,old.leaks);assert(migrated.leakRows.every(r=>r.finding===''));
+ assert.deepEqual(P.normalize(JSON.parse(JSON.stringify(migrated))),migrated);assert.equal(P.blank().photos.length,2);assert(P.blank().leakRows.every(r=>r.finding===''));
+});
+test('photo annex grows with attachments, excludes empty slots, and always precedes clauses',async()=>{
+ const jpeg='data:image/jpeg;base64,'+fs.readFileSync(require('node:path').join(__dirname,'fixtures/photo.jpg')).toString('base64');
+ context.Image=class{naturalWidth=180;naturalHeight=45;set src(value){queueMicrotask(()=>this.onload());}};
+ try{
+  for(const count of [0,1,2,5,6,7,12,13]){
+   const d=P.example();d.photos=Array.from({length:count},(_,i)=>({image:jpeg,caption:'Evidencia '+i}));d.photos.push({image:'',caption:''});
+   const {pages}=await render(d),annex=pages.filter(p=>p.some(t=>t.text.startsWith('04 / ANEXO FOTOGRÁFICO')));
+   assert.equal(annex.length,Math.ceil(count/6));assert.equal(annex.reduce((sum,p)=>sum+p.images.length,0),count);assert.equal(pages.length,4+Math.ceil(count/6));
+   assert(pages.at(-1).some(t=>t.text==='05 / CLÁUSULAS Y ALCANCE'));
+   for(let i=0;i<count;i++)assert(annex.flat().some(t=>t.text==='Evidencia '+i));
+   for(const p of annex){assert(!p.some(t=>['VIN','Serie','Motor','Impronta no adjunta'].includes(t.text)));for(const im of p.images)assert(im.y>=78&&im.x>=36&&im.x+im.width<=576);}
+  }
+ }finally{delete context.Image;}
+});
+test('fuel, vehicle type and legacy identification-only codes remain visible in the report',async()=>{
+ const d=P.example();d.photos=[{image:'',caption:'CÓDIGO CONSERVADO',legacyLabel:'VIN'}];const {pages}=await render(d),first=pages[0].map(t=>t.text).join(' ');
+ assert(first.includes(d.fuel));assert(first.includes(d.vehicleType));assert(pages[2].some(t=>t.text==='CÓDIGO CONSERVADO'));
+});
+
+test('short inspection rows stay together across page breaks',async()=>{
+ const d=P.example();d.body=Array.from({length:40},(_,i)=>({element:'Elemento de carrocería '+i,finding:'Hallazgo específico número '+i}));
+ const {pages}=await render(d);
+ for(let i=0;i<40;i++)assert(pages.some(page=>page.filter(t=>t.x<294&&t.y<650).map(t=>t.text).join(' ').includes('Elemento de carrocería '+i+' Hallazgo específico número '+i)),String(i));
 });
