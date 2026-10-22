@@ -140,3 +140,16 @@ test('PDF places the colored tire average between its heading and table in both 
  }
  const d=P.example();d.tires=['80','','80','80'];const {pages}=await render(d);assert(pages.flat().some(t=>t.text==='Calificación general: pendiente (4 valores)'));
 });
+test('inspection catalogs search accents, word order and aliases without duplicate suggestions',()=>{
+ for(const [kind,query,expected] of [['body','PARAGOLPES tras','Bómper trasero'],['body','bumper delantero','Bómper delantero'],['body','guardafango derecho','Guardafango delantero derecho'],['body','capota','Techo / capota'],['body','cinturon','Cinturón de seguridad'],['chassis','motor cuna','Cuna de motor'],['findings','bueno','Bien']])assert(P.suggestions(kind,query).includes(expected),query);
+ assert.deepEqual(P.suggestions('findings','bueno'),['Bien']);
+ assert.deepEqual(P.suggestions('body','pieza personalizada no catalogada'),[]);
+ for(const [kind,count] of [['body',83],['chassis',34],['findings',32]]){const entries=P.suggestions(kind);assert.equal(entries.length,count);assert.equal(new Set(entries.map(x=>x.toLocaleLowerCase('es'))).size,count);}
+ assert(!P.CATALOGS.findings.includes('Bueno'));
+});
+test('custom and legacy inspection text survives draft round-trip and PDF generation',async()=>{
+ const d=P.example();d.body=[{element:'Guardafango izquierdo',finding:'Bueno'},{element:'Pieza personalizada <especial>',finding:'Primera observación libre.\nSegunda observación libre.'}];d.chassis=[{element:'Cuna',finding:'Hallazgo propio sin catálogo'}];
+ const roundTrip=P.normalize(JSON.parse(JSON.stringify(d)));assert.deepEqual(roundTrip.body,d.body);assert.deepEqual(roundTrip.chassis,d.chassis);
+ const {pages}=await render(roundTrip),text=pages.flat().map(t=>t.text).join(' ');
+ for(const expected of ['Guardafango izquierdo','Bueno','Pieza personalizada <especial>','Primera observación libre.','Segunda observación libre.','Hallazgo propio sin catálogo'])assert(text.includes(expected),expected);
+});

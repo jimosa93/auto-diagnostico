@@ -38,6 +38,13 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 - Validación de campos esenciales y porcentajes.
 - Calificación general de llantas en el PDF: promedio de los cuatro porcentajes,
   con el color del rango y hasta dos decimales. Si falta algún valor, queda pendiente.
+- Selectores con búsqueda y texto libre en los elementos y hallazgos de carrocería
+  y chasis: 83 elementos de carrocería, 34 de estructura y 32 hallazgos sugeridos.
+  Búsqueda sin distinguir tildes o mayúsculas, con equivalencias como bumper /
+  paragolpes y Bueno → Bien. La flecha abre todas las opciones; las teclas ↓/↑
+  recorren la lista, Enter selecciona y Escape cierra. Alt+↓ abre la lista desde
+  el teclado, incluso en hallazgos de varias líneas. Los hallazgos permiten
+  varias líneas y los borradores anteriores conservan sus textos originales.
 - Hallazgos editables, imágenes de improntas y firma dibujada o adjunta.
 - Improntas optimizadas a un máximo de 1000 × 300 px, conservando proporción y
   sin ampliar imágenes pequeñas. JPEG con calidad de 84 % y ajuste hasta 76 %
