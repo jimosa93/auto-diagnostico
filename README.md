@@ -47,8 +47,11 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 - Concepto después del resultado en la primera hoja y
   porcentajes en negrilla: verde desde 80 %, amarillo desde 65 % y rojo por debajo
   de 65 %. El dictamen sigue siendo seleccionado por el perito.
-- Hoja final de cláusulas con el contenido de `CLAUSULAS.pdf`, incluida siempre
-  en la vista previa y la descarga del peritaje.
+- Encabezado principal en la primera página y compacto en las siguientes, con
+  título y servicio centrados y logo y placa más pequeños.
+- Hoja final de cláusulas con el contenido de `CLAUSULAS.pdf`, sin encabezado
+  vehicular y con letra y espaciado ampliados. Se incluye siempre en la vista
+  previa y la descarga del peritaje.
 - Distribución automática del detalle técnico: chasis y llantas se colocan en
   dos columnas solo cuando permite conservar Fugas en esa misma hoja. Si hay
   demasiados elementos o texto, se mantiene una columna con páginas adicionales.

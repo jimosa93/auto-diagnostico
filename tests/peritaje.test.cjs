@@ -112,3 +112,17 @@ test('near page boundaries columns never spill into the footer or lose leak line
   const columnPage=pages.find(p=>p.some(t=>t.text==='Llantas'&&t.x===318));if(columnPage)assert(columnPage.some(t=>t.text==='Fuga '+(leakLines-1)));
  }
 });
+test('only the first page has the large header; continuations are compact and clauses have none',async()=>{
+ const d=P.example();d.service='AD-143';d.concept='Concepto técnico. '.repeat(300);d.body=Array.from({length:35},(_,i)=>({element:'Elemento '+i,finding:'Hallazgo'}));
+ const {pages}=await render(d);assert(pages.length>4);
+ const firstPlate=pages[0].find(t=>t.text===d.plate&&t.y>700);assert.equal(firstPlate.size,24);
+ for(const p of pages.slice(1,-1)){
+  const title=p.find(t=>t.text==='INFORME TÉCNICO VEHICULAR'),service=p.find(t=>t.text==='Servicio: AD-143'),plate=p.find(t=>t.text===d.plate&&t.y>700);
+  for(const t of [title,service])assert(Math.abs(t.x+t.font.widthOfTextAtSize(t.text,t.size)/2-306)<.01);
+  assert(service.font.name.includes('Bold'));assert(plate.size<firstPlate.size);
+  const section=p.find(t=>/^0[123] \/ /.test(t.text));assert(section.y>pages[0].find(t=>t.text==='01 / RESUMEN DE LA INSPECCIÓN').y);
+ }
+ const clauses=pages.at(-1);assert(!clauses.some(t=>['INFORME TÉCNICO VEHICULAR','Servicio: AD-143',d.plate,'COLOMBIA'].includes(t.text)));
+ assert(clauses.some(t=>t.text==='04 / CLÁUSULAS Y ALCANCE'&&t.y>730));
+ assert(clauses.some(t=>t.size===9.2));assert(clauses.find(t=>t.text==='Cali – Valle del Cauca').y>=78);
+});
