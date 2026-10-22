@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#214acc"><meta name="description" content="Crea anexos fotográficos, organiza tus PDFs y extrae el texto de documentos Word con AutoDiagnóstico.">
   <title>Herramientas PDF · AutoDiagnóstico</title>
-  <link rel="icon" href="/generador/logo.png"><link rel="stylesheet" href="/generador/styles.css">
+  <link rel="icon" href="/generador/logo.png"><link rel="stylesheet" href="/generador/styles.css"><link rel="stylesheet" href="/generador/navigation.css">
   <script defer src="/generador/vendor/pdf-lib.min.js"></script><script defer src="/generador/vendor/jszip.min.js"></script>
   <script defer src="/generador/pdf.js"></script><script defer src="/generador/documents.js"></script>
 </head>
@@ -12,11 +12,11 @@
 <header class="topbar"><div class="topbar-inner"><a href="/" aria-label="Volver al formulario de peritaje"><img src="/generador/logo.png" alt="AutoDiagnóstico"></a><span class="brand-note">PERITAJE AUTOMOTRIZ<br><strong>Herramientas del informe</strong></span><a class="back-link" href="/">← Formulario de peritaje</a></div></header>
 <main>
   <div class="intro"><div><p class="eyebrow">DEL REGISTRO AL INFORME</p><h1>Herramientas PDF</h1><p>Une tus documentos o convierte el texto de Word a PDF.</p></div><span class="badge">Prototipo web</span></div>
-  <nav class="tool-nav" aria-label="Herramientas">
-    <a class="nav-link" href="/generador/">← Anexo fotográfico</a>
-    <button type="button" data-mode="merge" aria-pressed="false"><span class="tool-number">01</span><strong>Unir PDFs</strong><small>Un expediente, varios archivos</small></button>
-    <button type="button" data-mode="word" aria-pressed="false"><span class="tool-number">02</span><strong>Texto de Word a PDF</strong><small>Extrae el texto de un .docx</small></button>
-  </nav>
+  <nav class="tools-nav" aria-label="Herramientas">
+<a href="/generador/"><span class="tools-number">01</span><strong>Anexo fotográfico</strong><small>Organiza y optimiza tus fotos</small></a>
+<button type="button" data-mode="merge" aria-pressed="false"><span class="tools-number">02</span><strong>Unir PDFs</strong><small>Un expediente, varios archivos</small></button>
+<button type="button" data-mode="word" aria-pressed="false"><span class="tools-number">03</span><strong>Texto de Word a PDF</strong><small>Extrae el texto de un .docx</small></button>
+</nav>
   <div id="notice" class="notice" role="status" hidden></div>
   <div class="workspace">
     <section class="editor card" aria-labelledby="tool-title">
