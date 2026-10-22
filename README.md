@@ -36,6 +36,8 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
 
 - Formulario de cinco pasos: vehículo, resultado, inspección, improntas y PDF.
 - Validación de campos esenciales y porcentajes.
+- Calificación general de llantas en el PDF: promedio de los cuatro porcentajes,
+  con el color del rango y hasta dos decimales. Si falta algún valor, queda pendiente.
 - Hallazgos editables, imágenes de improntas y firma dibujada o adjunta.
 - Improntas optimizadas a un máximo de 1000 × 300 px, conservando proporción y
   sin ampliar imágenes pequeñas. JPEG con calidad de 84 % y ajuste hasta 76 %

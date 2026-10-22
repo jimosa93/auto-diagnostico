@@ -53,6 +53,7 @@ const required=[['plate','Placa',0],['brand','Marca',0],['line','Línea o refere
 function issues(d){const out=required.filter(([k])=>!String(d[k]).trim()).map(([key,label,step])=>({key,label,step}));if(d.result==='SIN EVALUAR')out.push({key:'result',label:'Resultado del peritaje',step:1});for(const [key,arr] of [['bodyScore',[d.bodyScore]],['chassisScore',[d.chassisScore]],['tires',d.tires]])arr.forEach((v,i)=>{if(v!==''&&(!Number.isFinite(+v)||+v<0||+v>100))out.push({key:key==='tires'?'tire'+i:key,label:'Porcentaje entre 0 y 100',step:key==='tires'?2:1});});if(d.year&&(!/^\d{4}$/.test(d.year)||+d.year<1900||+d.year>2100))out.push({key:'year',label:'Modelo de cuatro dígitos entre 1900 y 2100',step:0});return out;}
 function fmtDate(s){return /^\d{4}-\d\d-\d\d$/.test(s)?s.split('-').reverse().join('/'):(s||'No consignada');}
 function pct(s){return s===''?'No consignada':s+'%';}
+function tireAverage(tires){if(!Array.isArray(tires)||tires.length!==4)return null;const values=tires.map(v=>String(v??'').trim());if(values.some(v=>v===''||!Number.isFinite(Number(v))||Number(v)<0||Number(v)>100))return null;return values.reduce((sum,v)=>sum+Number(v),0)/4;}
 function scoreTone(value){const n=Number(String(value).replace(',','.'));return String(value).trim()===''||!Number.isFinite(n)||n<0||n>100?'muted':n>=80?'green':n>=65?'amber':'red';}
 function stateTone(state){return state==='APROBADO'?'green':state==='APROBADO CON OBSERVACIONES'?'amber':state==='NO APROBADO'?'red':'muted';}
 // Aproximadamente 300 ppp para el recuadro de 240 × 70 puntos del PDF.
@@ -115,14 +116,15 @@ async function makePDF(d,lib){
  heading('Carrocería y pintura');assessment(d.bodyScore,d.bodyState);const body=rows(d.body);if(body.length)table(['Elemento inspeccionado','Hallazgo reportado'],body,[255,285]);else paragraph('No se consignaron elementos.');
  const chassis=rows(d.chassis),chassisHeaders=['Elemento inspeccionado','Hallazgo reportado'],tireHeaders=['Posición','Izquierda','Derecha'],tires=[['Delantera',pct(d.tires[0]),pct(d.tires[1])],['Trasera',pct(d.tires[2]),pct(d.tires[3])]],leaks=d.leaks||'No consignado';
  const chassisHeight=(width,widths)=>26+assessmentLayout(d.chassisScore,d.chassisState,width).length*12.6+6+(chassis.length?tableLayout(chassisHeaders,chassis,widths).height:wrap('No se consignaron elementos.',width,10,regular,true).length*14+10);
- const tiresHeight=widths=>26+tableLayout(tireHeaders,tires,widths).height;
+ const average=tireAverage(d.tires),tireSummary=average===null?'Calificación general: pendiente (4 valores)':'Calificación general: '+pct(average.toLocaleString('es-CO',{maximumFractionDigits:2}));
+ const tiresHeight=widths=>26+wrap(tireSummary,widths.reduce((sum,w)=>sum+w,0),9,regular,true).length*12.6+6+tableLayout(tireHeaders,tires,widths).height;
  const leaksHeight=Math.max(48,26+wrap(leaks,540,10,regular,true).length*14);
  const stackedEnd=y+chassisHeight(540,[255,285])+tiresHeight([180,180,180]);
  const columnsHeight=Math.max(chassisHeight(258,[123,135]),tiresHeight([86,86,86]));
  // Solo compactar cuando Fugas es lo que provoca la hoja adicional y todo cabe.
  const useColumns=page===detailPage&&stackedEnd<=714&&stackedEnd+leaksHeight>714&&y+columnsHeight+leaksHeight<=714;
  function chassisSection(widths){heading('Chasis y estructura');assessment(d.chassisScore,d.chassisState);if(chassis.length)table(chassisHeaders,chassis,widths);else paragraph('No se consignaron elementos.');}
- function tiresSection(widths){heading('Llantas');table(tireHeaders,tires,widths);}
+ function tiresSection(widths){heading('Llantas');paragraph(tireSummary,{size:9,color:colors.muted,space:6});table(tireHeaders,tires,widths);}
  if(useColumns){const top=y;contentWidth=258;try{chassisSection([123,135]);const bottom=y;contentX=318;y=top;tiresSection([86,86,86]);y=Math.max(bottom,y);}finally{contentX=36;contentWidth=540;}}else{chassisSection([255,285]);tiresSection([180,180,180]);}
  heading('Fugas');paragraph(leaks);
  newPage('03 / IDENTIFICACIÓN Y CIERRE');paragraph('Improntas del vehículo',{size:23,font:bold});paragraph('Registro de las improntas obtenidas durante la inspección física del vehículo.',{size:10,color:colors.muted});
@@ -162,7 +164,7 @@ async function makePDF(d,lib){
  const pages=pdf.getPages();for(let i=0;i<pages.length;i++){page=pages[i];line(36,729,576);txt(d.company+' | Peritaje automotriz profesional',36,739,8,bold);const contact=[d.phones,d.email].filter(Boolean).join(' · ');const cl=wrap(contact,455,7.5).slice(0,2);cl.forEach((s,j)=>txt(s,36,752+j*10,7.5,regular,colors.muted));if(d.social)txt(wrap(d.social,455,7.5)[0],36,773,7.5,regular,colors.muted);txt((i+1)+' de '+pages.length,535,740,8,regular,colors.muted);}
  pdf.setTitle('Peritaje vehicular '+d.plate.toUpperCase());pdf.setAuthor(d.company);pdf.setSubject('Informe técnico vehicular');return pdf.save();
 }
-root.Peritaje={blank,example,normalize,issues,makePDF,STATES,LABELS,fmtDate,pct,scoreTone,stateTone,imprintSize,optimizeImprint};
+root.Peritaje={blank,example,normalize,issues,makePDF,STATES,LABELS,fmtDate,pct,tireAverage,scoreTone,stateTone,imprintSize,optimizeImprint};
 })(typeof window!=='undefined'?window:globalThis);
 </script><script>'use strict';
 const P=window.Peritaje,STORE='autodiagnostico_peritaje_v1';let data=P.blank(),step=0,saveTimer,toastTimer,lastPDF=null,lastURL=null,pdfRevision=-1,revision=0,drawing=false,stroke=false;

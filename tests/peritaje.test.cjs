@@ -126,3 +126,17 @@ test('only the first page has the large header; continuations are compact and cl
  assert(clauses.some(t=>t.text==='04 / CLÁUSULAS Y ALCANCE'&&t.y>730));
  assert(clauses.some(t=>t.size===9.2));assert(clauses.find(t=>t.text==='Cali – Valle del Cauca').y>=78);
 });
+test('tire average includes all four values, including zero, and stays pending for incomplete or invalid data',()=>{
+ assert.equal(P.tireAverage(['25','45','75','95']),60);
+ assert.equal(P.tireAverage(['0','0','0','0']),0);
+ assert.equal(P.tireAverage(['80','80','80','81']),80.25);
+ for(const values of [['80','80','','80'],['80','80',null,'80'],['80','80','101','80'],['80','80','-1','80'],['80','80','x','80'],['80','80','80']])assert.equal(P.tireAverage(values),null);
+});
+test('PDF places the colored tire average between its heading and table in both layouts',async()=>{
+ for(const count of [3,11]){
+  const d=P.example();d.body=Array.from({length:count},(_,i)=>({element:'Pieza '+i,finding:'Hallazgo'}));d.tires=['25','45','75','95'];d.leaks='Fuga de motor\nFuga de caja\nFuga hidráulica\nFuga refrigerante';
+  const {pages}=await render(d),p=pages.find(p=>p.some(t=>t.text==='Llantas')),title=p.find(t=>t.text==='Llantas'),label=p.find(t=>t.text==='Calificación general: '),score=p.find(t=>t.text==='60%'),table=p.find(t=>t.text==='Posición');
+  assert.equal(title.x,count===3?36:318);assert.equal(label.x,title.x);assert(title.y>label.y&&label.y>table.y);assert.equal(score.color.red,.68);assert(score.font.name.includes('Bold'));
+ }
+ const d=P.example();d.tires=['80','','80','80'];const {pages}=await render(d);assert(pages.flat().some(t=>t.text==='Calificación general: pendiente (4 valores)'));
+});
