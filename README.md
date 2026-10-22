@@ -45,6 +45,9 @@ Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
   dirección hidráulica y sistema refrigerante como elementos iniciales. Los
   hallazgos quedan vacíos hasta que el perito los diligencia.
 - Observaciones generales en un textarea; responsable y firma en Inspección.
+- Observación de llantas debajo de su tabla y Observaciones adicionales debajo
+  de las generales. Ambos campos son opcionales: el PDF omite cada título y
+  contenido cuando el campo está vacío o contiene sólo espacios.
 - Anexo fotográfico con dos espacios iniciales y botones para agregar, quitar
   y ordenar fotografías. Descripciones opcionales, sin títulos fijos VIN/Serie.
 - Fotos optimizadas dentro de 1400 × 1000 px, conservando proporción y sin ampliar

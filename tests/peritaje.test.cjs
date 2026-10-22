@@ -173,3 +173,19 @@ test('short inspection rows stay together across page breaks',async()=>{
  const {pages}=await render(d);
  for(let i=0;i<40;i++)assert(pages.some(page=>page.filter(t=>t.x<294&&t.y<650).map(t=>t.text).join(' ').includes('Elemento de carrocería '+i+' Hallazgo específico número '+i)),String(i));
 });
+test('optional tire and additional notes appear independently in order and omit whitespace-only sections',async()=>{
+ for(const [tireNotes,additionalNotes] of [['',''],[' \n\t ','\n '],['Revisar desgaste interior.',''],['','Verificar accesorios.'],['Revisar desgaste interior.','Verificar accesorios.']]){
+  const d=P.example();Object.assign(d,{tireNotes,additionalNotes});const {pages}=await render(d),texts=pages.flat().map(t=>t.text),tireTitle=texts.indexOf('Observación de llantas:'),additionalTitle=texts.indexOf('Observaciones adicionales');
+  assert.equal(tireTitle>=0,!!tireNotes.trim());assert.equal(additionalTitle>=0,!!additionalNotes.trim());
+  if(tireNotes.trim()){assert(tireTitle>texts.indexOf('Trasera'));assert(tireTitle<texts.indexOf('Fugas de fluidos'));assert(texts.indexOf(tireNotes)>tireTitle);}
+  if(additionalNotes.trim()){assert(additionalTitle>texts.indexOf('Observaciones generales'));assert(additionalTitle<texts.indexOf('Responsable de la inspección y firma'));assert(texts.indexOf(additionalNotes)>additionalTitle);}
+ }
+});
+test('new notes default to empty in older drafts and retain multiline text through saving and PDF continuation',async()=>{
+ const old=P.example();delete old.tireNotes;delete old.additionalNotes;
+ for(const version of [1,2]){const migrated=P.normalize({...old,version});assert.equal(migrated.tireNotes,'');assert.equal(migrated.additionalNotes,'');}
+ const d={...P.example(),tireNotes:'Primera observación de llantas.\n'+'Desgaste irregular. '.repeat(450)+'FIN LLANTAS',additionalNotes:'Primera observación adicional.\n'+'Revisión complementaria. '.repeat(350)+'FIN ADICIONALES'};
+ const stored=P.normalize(JSON.parse(JSON.stringify(d)));assert.equal(stored.tireNotes,d.tireNotes);assert.equal(stored.additionalNotes,d.additionalNotes);
+ const {pages}=await render(stored),text=pages.slice(0,-1).flat().map(t=>t.text).join(' ').replace(/\s+/g,' ');
+ assert(text.includes('FIN LLANTAS'));assert(text.includes('FIN ADICIONALES'));assert(pages.at(-1).some(t=>t.text==='05 / CLÁUSULAS Y ALCANCE'));
+});
