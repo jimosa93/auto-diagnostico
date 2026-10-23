@@ -99,21 +99,16 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
 Este historial corresponde al **Peritaje vehicular**. Los originales del generador
 fotográfico independiente y los archivos de Unir PDFs/Word continúan siendo locales.
 
-## Almacenamiento y migración a R2
+## Almacenamiento de imágenes en R2
 
 En `/historial/`, después de iniciar sesión, **Almacenamiento de imágenes** muestra
-la cantidad y los bytes de los archivos registrados en R2 y las imágenes que aún
-están en base64 en Neon. Estas cifras no son la facturación ni el espacio físico
-de PostgreSQL: no incluyen objetos subidos fuera de la app, cargas huérfanas ni
-otras tablas, y PostgreSQL puede conservar espacio reutilizable tras un UPDATE.
+la cantidad de archivos guardados y el espacio utilizado en R2. Si aún no se ha
+guardado ningún informe, ambos valores aparecen en cero. No se requiere un
+traslado inicial: las nuevas fotos, logos y firmas se guardan directamente en R2.
 
-Pulsa **Trasladar imágenes a R2** para migrar los archivos anteriores. Cada petición
-procesa una imagen: la sube, la vuelve a leer, verifica su SHA-256 y sólo entonces
-actualiza la referencia y retira el base64 de Neon. Incluye fotos, firmas y logos,
-incluso los utilizados en versiones antiguas. No modifica informes ni eventos.
-Se puede pausar y reanudar, también después de cerrar la pestaña o de un error.
-Las imágenes pendientes siguen abriendo desde Neon. Volver a guardar una imagen
-antigua también la traslada. Las nuevas imágenes se guardan directamente en R2.
+Las cifras corresponden a los archivos registrados por la aplicación; no incluyen
+objetos subidos fuera de ella ni cargas huérfanas. Cada imagen se vuelve a leer y
+se verifica mediante SHA-256 antes de registrar su referencia en Neon.
 
 El bucket sigue privado. Las operaciones pasan por la API autenticada de Vercel;
 no se exponen credenciales ni URLs públicas y no hace falta configurar CORS en R2.
