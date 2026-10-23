@@ -1,28 +1,37 @@
 # AutoDiagnóstico · Prototipo de peritaje automotriz
 
-Aplicación estática para diligenciar una inspección vehicular y descargar su
+Aplicación web para diligenciar una inspección vehicular y descargar su
 informe PDF. Incluye el diseño del informe y la estructura de secciones acordados con el cliente.
-No requiere React, instalación de dependencias, servidor de aplicación ni base
-de datos. El logo y la biblioteca de generación de PDF están incluidos en
-`index.html`.
+El formulario y el PDF funcionan en el navegador. El historial utiliza una
+función de Vercel y PostgreSQL en Neon; no requiere React. El logo y la biblioteca
+de generación de PDF están incluidos en `index.html`.
 
 ## Publicar en Vercel
 
 1. En Vercel, selecciona **Add New → Project** e importa el repositorio
    `jimosa93/auto-diagnostico`.
 2. Usa la rama `main` y deja **Root Directory** en la raíz del repositorio.
-3. El archivo `vercel.json` configura **Framework Preset: Other**, sin comandos
-   de instalación ni compilación, y **Output Directory: .**.
-4. Pulsa **Deploy** y abre la URL HTTPS que Vercel entregue.
+3. `vercel.json` configura **Other**, instalación `npm ci`, compilación
+   `npm run build` y salida `public`. El servidor `/api/history` queda separado
+   de los archivos públicos. Usa Node.js 22.
+4. Agrega las variables privadas **DATABASE_URL** (conexión completa de Neon)
+   y **HISTORY_PASSWORD** (contraseña independiente del equipo, mínimo 16 caracteres).
+   Configúralas para Production; usa otra base de datos para Preview/Development.
+   Copia la conexión desde Neon, con la contraseña codificada para URL si contiene
+   caracteres especiales. No uses prefijos públicos ni subas `.env.local` a Git.
+5. Despliega o vuelve a desplegar después de cambiar las variables. Las tablas
+   `ad_*` se crean automáticamente en la primera operación autenticada/inicio de
+   sesión. También puedes ejecutar `npm run db:migrate` con `.env.local`.
 
-No se necesitan variables de entorno. Los siguientes cambios en `main` se
-publicarán automáticamente si mantienes conectada la integración de Git.
+Los siguientes cambios en `main` se publican automáticamente con la integración
+Git. La contraseña del historial no es la contraseña de Neon. Al cambiarla se
+invalidan las sesiones anteriores.
 
 Referencia: [sitios estáticos en Vercel](https://vercel.com/docs/builds/configure-a-build).
 
 ## Probar localmente
 
-Desde la carpeta del proyecto, con Python 3 instalado:
+Para probar sólo el formulario estático (sin historial), con Python 3:
 
 ```sh
 python3 -m http.server 8080 --bind 127.0.0.1
@@ -31,6 +40,56 @@ python3 -m http.server 8080 --bind 127.0.0.1
 Abre <http://127.0.0.1:8080>. También puedes abrir `index.html` directamente en un
 navegador de escritorio. Para probar en iPhone o iPad, usa la URL de Vercel en
 Safari; la vista previa de la aplicación Archivos puede desactivar JavaScript.
+
+Para probar el historial localmente, copia `.env.example` a `.env.local`, agrega
+las credenciales de una base de desarrollo y ejecuta:
+
+```sh
+npm ci
+npm run build
+npm run dev
+```
+
+Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build.
+
+## Historial centralizado
+
+- **Guardar informe** conserva una inspección incompleta; requiere una placa.
+- **Descargar PDF**, **Ver PDF** y sus enlaces secundarios registran una acción
+  después de generar correctamente el PDF. Registrar la descarga indica la
+  solicitud, no que el archivo haya sido guardado finalmente por el dispositivo.
+- Se conserva el formulario completo: vehículo, servicio, calificaciones,
+  hallazgos, notas, llantas, fugas, responsable, firma, logo y fotografías del
+  anexo incluidas en el peritaje. Las fotos son las versiones optimizadas que
+  utiliza el formulario, no sus originales de alta resolución.
+- Las imágenes se suben por separado (hasta 4 millones de caracteres por imagen),
+  se identifican por SHA-256 y no se duplican al guardar otra versión. La app
+  admite hasta 200 fotografías por informe en el historial.
+- `/historial/` permite buscar por placa/servicio/vehículo, filtrar por fecha de
+  guardado en Colombia, exportar los resultados a CSV y abrir informes. La
+  actividad muestra hasta las últimas 500 acciones de cada informe.
+- Cada modificación crea una versión. Guardar/descargar/ver sin cambiar los datos
+  conserva esa versión y añade un evento. Los reintentos del mismo evento son
+  idempotentes. No hay eliminación de informes en esta versión.
+- Abrir un informe actual permite continuar editándolo. Abrir una versión anterior
+  crea una copia: no sustituye silenciosamente la versión más reciente.
+- El servidor rechaza sobrescrituras con una versión desactualizada. La interfaz
+  permite abrir el último registro o guardar como informe nuevo.
+- Si falla el historial, el PDF sigue disponible y aparece **No se guardó en el
+  historial** con un botón de reintento. Los reintentos pendientes se mantienen
+  en memoria; descarga el borrador antes de salir si no puedes guardar. No se
+  promete sincronización automática sin conexión.
+- Se guardan datos y versiones, no el PDF binario. Al reabrirlo se genera con la
+  plantilla vigente; por eso no es un archivo legal inmutable del PDF original.
+- El acceso utiliza una contraseña compartida del equipo, cookie HttpOnly/Secure
+  con duración de 12 horas, validación del origen y límite de intentos de acceso.
+  El campo Perito es un dato del informe, no una identidad de usuario verificada.
+- La conexión a Neon nunca se entrega al navegador. Las tablas incluyen registros
+  de imágenes subidas antes de un fallo de guardado; no se eliminan automáticamente.
+  Revisa el almacenamiento contratado conforme crezca el uso.
+
+Este historial corresponde al **Peritaje vehicular**. Los originales del generador
+fotográfico independiente y los archivos de Unir PDFs/Word continúan siendo locales.
 
 ## Funciones incluidas
 
@@ -106,21 +165,15 @@ adicional conservan sus textos. El formulario admite borradores JSON de hasta
 6. Descarga el borrador, inicia un nuevo peritaje y vuelve a abrir el JSON.
 7. Repite el recorrido en un celular desde la URL HTTPS.
 
-## Alcance del prototipo
+## Borradores y acceso
 
-Los datos y las imágenes se procesan en el navegador; no se envían a una base de
-datos. Solo se conserva un borrador por navegador y origen (dominio y protocolo).
-El borrador local no se comparte entre equipos ni entre la URL local y Vercel.
-Si borras los datos del navegador, puedes perderlo. Descarga el JSON para
-conservarlo o trasladarlo a otro equipo.
-
-El almacenamiento del navegador tiene un límite. Si las imágenes lo superan,
-el formulario indica que debes descargar el borrador para conservarlo.
-
-Esta versión no incluye inicio de sesión, historial centralizado ni consecutivos
-automáticos. Una URL pública permite que cualquier persona con acceso a ella
-utilice el formulario; los borradores de otros dispositivos no se publican.
-
+El autoguardado local conserva un borrador por navegador y origen. Sigue siendo
+independiente del historial: sólo los botones de guardado/PDF envían información
+a Neon. El JSON descargado permite conservar o trasladar el borrador sin conexión;
+al importarlo se trata como un informe nuevo. El formulario público puede usarse
+sin sesión, pero no se pueden consultar ni escribir registros remotos sin la
+contraseña del equipo. Si se cancela el acceso durante la generación de un PDF,
+se entrega el PDF con un aviso visible de que no se guardó en el historial.
 
 ## Generador de anexos y herramientas PDF
 
