@@ -12,9 +12,9 @@ async function load(){
  $('previous').disabled=offset===0;$('next').disabled=!result.hasMore;$('page').textContent='Página '+(offset/50+1);$('count').textContent=result.reports.length+(result.reports.length===1?' informe':' informes')+' en esta página · fechas de guardado en Colombia';message();
  }catch(error){message(error.message,true);if(error.status===401){$('workspace').hidden=true;$('access').hidden=false;$('logout').hidden=true;}}
 }
-async function enter(){try{await H.authenticate();$('access').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;await load();}catch(error){message(error.message,true);}}
+async function enter(){try{await H.authenticate();$('access').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;await load();await loadStorage();}catch(error){message(error.message,true);}}
 $('login').onclick=enter;
-$('logout').onclick=async()=>{try{await H.request('logout',{method:'POST',body:{}});$('workspace').hidden=true;$('access').hidden=false;$('logout').hidden=true;$('list').textContent='';$('events-list').textContent='';message('Sesión cerrada.');}catch(error){message(error.message,true);}};
+$('logout').onclick=async()=>{pauseMigration=true;try{await H.request('logout',{method:'POST',body:{}});$('workspace').hidden=true;$('access').hidden=false;$('logout').hidden=true;$('list').textContent='';$('events-list').textContent='';message('Sesión cerrada.');}catch(error){message(error.message,true);}};
 $('filters').onsubmit=event=>{event.preventDefault();offset=0;currentFilters=params();load();};
 $('previous').onclick=()=>{offset=Math.max(0,offset-50);load();};$('next').onclick=()=>{offset+=50;load();};
 $('close-events').onclick=()=>{$('events').hidden=true;};
@@ -22,3 +22,32 @@ $('list').onclick=async event=>{const button=event.target.closest('[data-events]
 function csvCell(value){let text=String(value??'');if(/^[\s]*[=+\-@]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}
 $('csv').onclick=async()=>{if(busy)return;busy=true;$('csv').disabled=true;try{const rows=[];let next=0,more=true;const selected={...currentFilters};while(more){const batch=await H.request('reports',{params:{...selected,offset:next}});rows.push(...batch.reports);more=batch.hasMore;next+=50;if(next>100000)throw Error('Hay demasiados resultados. Reduce el rango de fechas.');message(`Preparando CSV: ${rows.length} informes…`);}const table=[['ID','Fecha de creación (Colombia)','Último registro (Colombia)','Placa','Servicio','Marca','Línea','Modelo','Kilometraje','Resultado','Perito','Acciones'],...rows.map(r=>[r.id,dates.format(new Date(r.created_at)),dates.format(new Date(r.updated_at)),r.plate,r.service,r.brand,r.line,r.year,r.mileage,r.result,r.perito,r.event_count])];const blob=new Blob(['\ufeff'+table.map(row=>row.map(csvCell).join(';')).join('\r\n')],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='Historial_AutoDiagnostico.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),60000);message('CSV exportado.');}catch(error){message(error.message,true);}finally{busy=false;$('csv').disabled=false;}};
 H.session().then(state=>{if(state.authenticated)enter();else if(!state.configured)message('El historial todavía no está configurado en el servidor.',true);}).catch(error=>message(error.message,true));
+
+let migrationRunning=false,pauseMigration=false;
+function fileSize(bytes){if(bytes<1024)return bytes+' B';if(bytes<1048576)return (bytes/1024).toLocaleString('es-CO',{maximumFractionDigits:1})+' KB';return (bytes/1048576).toLocaleString('es-CO',{maximumFractionDigits:2})+' MB';}
+function showStorage(state){
+ $('storage-summary').textContent=state.mode==='r2'?(state.pending?`${state.pending} ${state.pending===1?'imagen anterior pendiente':'imágenes anteriores pendientes'} de trasladar. Las nuevas se guardan en R2.`:'Las imágenes se guardan en R2. No hay copias pendientes en Neon.'):state.mode==='neon'?'Las imágenes se guardan en Neon. Configura R2 para trasladarlas.':'La configuración de R2 está incompleta. Revisa las variables en Vercel.';
+ $('storage-metrics').innerHTML=`<div><strong>${state.r2Count}</strong><span>Archivos en R2 · ${fileSize(state.r2Bytes)}</span></div><div><strong>${state.pending}</strong><span>Imágenes en Neon · ${fileSize(state.neonBase64Bytes)} en base64</span></div>`;
+ $('migrate-assets').hidden=state.mode!=='r2'||!state.pending;
+ $('migrate-assets').disabled=migrationRunning;
+}
+async function loadStorage(){
+ $('refresh-storage').disabled=true;
+ try{showStorage(await H.request('storage'));}catch(error){$('storage-summary').textContent=error.message;}finally{$('refresh-storage').disabled=false;}
+}
+$('refresh-storage').onclick=loadStorage;
+$('pause-migration').onclick=()=>{pauseMigration=true;$('pause-migration').disabled=true;$('migration-message').textContent='Pausando al terminar la imagen actual…';};
+$('migrate-assets').onclick=async()=>{
+ if(migrationRunning)return;migrationRunning=true;pauseMigration=false;
+ $('migrate-assets').disabled=true;$('pause-migration').hidden=false;$('pause-migration').disabled=false;$('logout').disabled=true;
+ const notice=$('migration-message');notice.hidden=false;notice.textContent='Trasladando y verificando las imágenes. Mantén esta pestaña abierta…';let done=0;
+ try{
+  while(!pauseMigration){
+   const state=await H.request('migrate-assets',{method:'POST',body:{}});if(state.migrated)done++;showStorage(state);
+   notice.textContent=`${done} imágenes verificadas en esta sesión. Quedan ${state.pending} en Neon.`;
+   if(!state.pending){notice.textContent='Traslado completado. Los informes y todas sus versiones conservan sus imágenes.';break;}
+  }
+  if(pauseMigration)notice.textContent='Traslado pausado. Puedes continuarlo aquí; las imágenes pendientes siguen disponibles en Neon.';
+ }catch(error){notice.textContent=error.message+' Puedes reanudar el traslado; las copias no verificadas se conservan en Neon.';}
+ finally{migrationRunning=false;$('pause-migration').hidden=true;$('logout').disabled=false;await loadStorage();}
+};

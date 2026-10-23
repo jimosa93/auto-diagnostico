@@ -66,6 +66,9 @@ test('API never exposes reports without a session and rejects cross-origin write
  process.env.DATABASE_URL='postgresql://unused';process.env.HISTORY_PASSWORD='a-long-test-password';
  const call=async(req)=>{const res={headers:{},setHeader(k,v){this.headers[k]=v;},status(n){this.code=n;return this;},json(v){this.value=v;}};await api(req,res);return res;};
  try{
+  for(const op of ['storage','asset','migrate-assets']){
+   const result=await call({method:op==='migrate-assets'?'POST':'GET',url:'/api/history?op='+op,headers:{host:'example.com',origin:'https://example.com'},body:{}});assert.equal(result.code,401);
+  }
   const denied=await call({method:'GET',url:'/api/history?op=reports',headers:{host:'example.com'}});assert.equal(denied.code,401);assert.equal(denied.headers['Cache-Control'],'no-store');
   const csrf=await call({method:'POST',url:'/api/history?op=save',headers:{host:'example.com',origin:'https://evil.example'},body:{}});assert.equal(csrf.code,403);
   delete process.env.HISTORY_PASSWORD;const unconfigured=await call({method:'GET',url:'/api/history?op=session',headers:{host:'example.com'}});assert.deepEqual(unconfigured.value,{configured:false,authenticated:false});

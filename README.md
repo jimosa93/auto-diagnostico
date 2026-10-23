@@ -3,7 +3,7 @@
 Aplicación web para diligenciar una inspección vehicular y descargar su
 informe PDF. Incluye el diseño del informe y la estructura de secciones acordados con el cliente.
 El formulario y el PDF funcionan en el navegador. El historial utiliza una
-función de Vercel y PostgreSQL en Neon; no requiere React. El logo y la biblioteca
+función de Vercel, PostgreSQL en Neon y archivos privados en Cloudflare R2; no requiere React. El logo y la biblioteca
 de generación de PDF están incluidos en `index.html`.
 
 ## Publicar en Vercel
@@ -19,7 +19,12 @@ de generación de PDF están incluidos en `index.html`.
    Configúralas para Production; usa otra base de datos para Preview/Development.
    Copia la conexión desde Neon, con la contraseña codificada para URL si contiene
    caracteres especiales. No uses prefijos públicos ni subas `.env.local` a Git.
-5. Despliega o vuelve a desplegar después de cambiar las variables. Las tablas
+5. Para guardar las imágenes en R2, configura un bucket privado y las variables
+   `R2_ACCOUNT_ID` (sólo el identificador de 32 caracteres), `R2_REGION=auto`,
+   `R2_BUCKET_NAME`, `R2_ACCESS_KEY_ID` y `R2_SECRET_ACCESS_KEY`. El token debe
+   permitir lectura y escritura de objetos sólo en ese bucket. Conserva las
+   variables de Neon y del historial; son servicios complementarios.
+6. Despliega o vuelve a desplegar después de cambiar las variables. Las tablas
    `ad_*` se crean automáticamente en la primera operación autenticada/inicio de
    sesión. También puedes ejecutar `npm run db:migrate` con `.env.local`.
 
@@ -64,7 +69,10 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
   utiliza el formulario, no sus originales de alta resolución.
 - Las imágenes se suben por separado (hasta 4 millones de caracteres por imagen),
   se identifican por SHA-256 y no se duplican al guardar otra versión. La app
-  admite hasta 200 fotografías por informe en el historial.
+  admite hasta 200 fotografías por informe en el historial. Con R2 configurado,
+  se decodifican y se guardan como archivos JPEG/PNG binarios, conservando la
+  optimización existente. Neon almacena el hash, ruta del objeto, tipo y tamaño;
+  las versiones del informe conservan sus referencias originales.
 - `/historial/` permite buscar por placa/servicio/vehículo, filtrar por fecha de
   guardado en Colombia, exportar los resultados a CSV y abrir informes. La
   actividad muestra hasta las últimas 500 acciones de cada informe.
@@ -90,6 +98,35 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
 
 Este historial corresponde al **Peritaje vehicular**. Los originales del generador
 fotográfico independiente y los archivos de Unir PDFs/Word continúan siendo locales.
+
+## Almacenamiento y migración a R2
+
+En `/historial/`, después de iniciar sesión, **Almacenamiento de imágenes** muestra
+la cantidad y los bytes de los archivos registrados en R2 y las imágenes que aún
+están en base64 en Neon. Estas cifras no son la facturación ni el espacio físico
+de PostgreSQL: no incluyen objetos subidos fuera de la app, cargas huérfanas ni
+otras tablas, y PostgreSQL puede conservar espacio reutilizable tras un UPDATE.
+
+Pulsa **Trasladar imágenes a R2** para migrar los archivos anteriores. Cada petición
+procesa una imagen: la sube, la vuelve a leer, verifica su SHA-256 y sólo entonces
+actualiza la referencia y retira el base64 de Neon. Incluye fotos, firmas y logos,
+incluso los utilizados en versiones antiguas. No modifica informes ni eventos.
+Se puede pausar y reanudar, también después de cerrar la pestaña o de un error.
+Las imágenes pendientes siguen abriendo desde Neon. Volver a guardar una imagen
+antigua también la traslada. Las nuevas imágenes se guardan directamente en R2.
+
+El bucket sigue privado. Las operaciones pasan por la API autenticada de Vercel;
+no se exponen credenciales ni URLs públicas y no hace falta configurar CORS en R2.
+La API devuelve temporalmente una data URL al navegador para mantener el PDF y los
+borradores compatibles; ese base64 no se almacena en Neon para archivos de R2.
+Se usa el SDK S3 [según Cloudflare](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/).
+
+Sin ninguna variable de R2 se mantiene el almacenamiento anterior en Neon, para
+entornos de desarrollo. Una configuración parcial o un fallo de R2 produce un
+error visible; no cambia silenciosamente el destino. Si ya se migraron imágenes,
+no retires las variables de R2 ni cambies el bucket sin trasladar sus objetos.
+No se borran objetos automáticamente: fotos compartidas por otras versiones deben
+conservarse. Evita reglas de expiración sobre `reports/assets/`.
 
 ## Funciones incluidas
 

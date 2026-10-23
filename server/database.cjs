@@ -3,6 +3,11 @@ const {neon}=require('@neondatabase/serverless');
 const schema=[
  `CREATE TABLE IF NOT EXISTS ad_reports (id uuid PRIMARY KEY, current_version uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`,
  `CREATE TABLE IF NOT EXISTS ad_assets (hash text PRIMARY KEY, data text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), CHECK (length(data)<=4000000))`,
+ `ALTER TABLE ad_assets ALTER COLUMN data DROP NOT NULL`,
+ `ALTER TABLE ad_assets ADD COLUMN IF NOT EXISTS object_key text`,
+ `ALTER TABLE ad_assets ADD COLUMN IF NOT EXISTS mime_type text`,
+ `ALTER TABLE ad_assets ADD COLUMN IF NOT EXISTS byte_size bigint`,
+ `ALTER TABLE ad_assets ADD COLUMN IF NOT EXISTS migrated_at timestamptz`,
  `CREATE TABLE IF NOT EXISTS ad_versions (id uuid PRIMARY KEY, report_id uuid NOT NULL REFERENCES ad_reports(id), content_hash text NOT NULL, data jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(report_id,content_hash))`,
  `CREATE TABLE IF NOT EXISTS ad_events (id uuid PRIMARY KEY, report_id uuid NOT NULL REFERENCES ad_reports(id), version_id uuid NOT NULL REFERENCES ad_versions(id), action text NOT NULL CHECK(action IN ('save','download','preview')), created_at timestamptz NOT NULL DEFAULT now())`,
  `CREATE INDEX IF NOT EXISTS ad_reports_updated ON ad_reports(updated_at DESC,id)`,

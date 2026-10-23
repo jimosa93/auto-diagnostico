@@ -24,10 +24,7 @@ function validateData(raw){
  if(Buffer.byteLength(JSON.stringify(result))>3500000)fail('El texto del informe supera el límite de 3,5 MB.',413);
  return {data:result,assets:[...assets]};
 }
-async function putAsset(db,body){
- if(!HASH.test(body.hash)||typeof body.data!=='string'||body.data.length>4000000||!/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/]+={0,2}$/.test(body.data)||sha(body.data)!==body.hash)fail('Imagen no válida o demasiado grande.');
- await db.query('INSERT INTO ad_assets(hash,data) VALUES($1,$2) ON CONFLICT(hash) DO NOTHING',[body.hash,body.data]);return {hash:body.hash};
-}
+const {putAsset}=require('./storage.cjs');
 async function saveReport(db,body){
  const report=id(body.reportId),event=id(body.eventId),base=body.baseVersion===null?null:id(body.baseVersion);
  if(!ACTIONS.includes(body.action))fail('Acción no válida.');

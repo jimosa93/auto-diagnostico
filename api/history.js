@@ -2,6 +2,7 @@
 const database=require('../server/database.cjs');
 const security=require('../server/security.cjs');
 const reports=require('../server/reports.cjs');
+const storage=require('../server/storage.cjs');
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  const send=(status,body)=>res.status(status).json(body);
@@ -36,16 +37,14 @@ async function handler(req,res){
   if(op==='events'&&method==='GET')return send(200,{events:await reports.events(db,url.searchParams.get('id'))});
   if(op==='save'&&method==='POST')return send(200,await reports.saveReport(db,body));
   if(op==='asset'&&method==='POST')return send(200,await reports.putAsset(db,body));
-  if(op==='asset'&&method==='GET'){
-   const hash=url.searchParams.get('hash');if(!/^[a-f0-9]{64}$/.test(hash||''))return send(400,{error:'Imagen no válida.'});
-   const rows=await db.query('SELECT data FROM ad_assets WHERE hash=$1',[hash]);
-   return rows.length?send(200,{data:rows[0].data}):send(404,{error:'No se encontró una imagen del informe.'});
-  }
+  if(op==='asset'&&method==='GET')return send(200,await storage.getAsset(db,url.searchParams.get('hash')));
+  if(op==='storage'&&method==='GET')return send(200,await storage.status(db));
+  if(op==='migrate-assets'&&method==='POST')return send(200,await storage.migrateNext(db));
   return send(404,{error:'Operación no encontrada.'});
  }catch(error){
   if(error.status)return send(error.status,{error:error.message});
   console.error('History operation failed:',error.code||error.name||'Unknown');
-  return send(503,{error:'No se pudo completar la operación en la base de datos. Tu formulario sigue disponible; vuelve a intentarlo.'});
+  return send(503,{error:'No se pudo completar la operación de almacenamiento. Tu formulario sigue disponible; vuelve a intentarlo.'});
  }
 }
 module.exports=handler;
