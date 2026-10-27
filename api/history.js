@@ -3,6 +3,7 @@ const database=require('../server/database.cjs');
 const security=require('../server/security.cjs');
 const reports=require('../server/reports.cjs');
 const storage=require('../server/storage.cjs');
+const writes=require('../server/write-access.cjs');
 async function handler(req,res){
  res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff');
  const send=(status,body)=>res.status(status).json(body);
@@ -29,14 +30,20 @@ async function handler(req,res){
    res.setHeader('Set-Cookie',security.cookie(security.token(process.env.HISTORY_PASSWORD),req));
    return send(200,{authenticated:true});
   }
-  if(!security.authenticated(req))return send(401,{error:'Inicia sesión para acceder al historial.'});
+  const authenticated=security.authenticated(req);
+  if(method==='POST'&&['write-access','save','asset'].includes(op)){
+   const db=await database.ready();
+   if(!authenticated)await writes.limit(db,req,op,op==='asset'?Buffer.byteLength(JSON.stringify(body)):0);
+   if(op==='write-access')return send(200,await writes.grant(db,body,authenticated));
+   if(!authenticated)await writes.requireWrite(db,body);
+   return send(200,op==='save'?await reports.saveReport(db,body):await reports.putAsset(db,body));
+  }
+  if(!authenticated)return send(401,{error:'Inicia sesión para acceder al historial.'});
   if(op==='logout'&&method==='POST'){res.setHeader('Set-Cookie',security.cookie('',req,true));return send(200,{authenticated:false});}
   const db=await database.ready();
   if(op==='reports'&&method==='GET')return send(200,await reports.list(db,url.searchParams));
   if(op==='report'&&method==='GET')return send(200,await reports.getReport(db,url.searchParams.get('id'),url.searchParams.get('version')));
   if(op==='events'&&method==='GET')return send(200,{events:await reports.events(db,url.searchParams.get('id'))});
-  if(op==='save'&&method==='POST')return send(200,await reports.saveReport(db,body));
-  if(op==='asset'&&method==='POST')return send(200,await reports.putAsset(db,body));
   if(op==='asset'&&method==='GET')return send(200,await storage.getAsset(db,url.searchParams.get('hash')));
   if(op==='storage'&&method==='GET')return send(200,await storage.status(db));
   if(op==='migrate-assets'&&method==='POST')return send(200,await storage.migrateNext(db));

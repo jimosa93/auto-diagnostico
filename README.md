@@ -60,6 +60,7 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
 ## Historial centralizado
 
 - **Guardar informe** conserva una inspección incompleta; requiere una placa.
+  Guardar, descargar y ver el PDF registran el informe sin pedir contraseña.
 - **Descargar PDF**, **Ver PDF** y sus enlaces secundarios registran una acción
   después de generar correctamente el PDF. Registrar la descarga indica la
   solicitud, no que el archivo haya sido guardado finalmente por el dispositivo.
@@ -89,9 +90,19 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
   promete sincronización automática sin conexión.
 - Se guardan datos y versiones, no el PDF binario. Al reabrirlo se genera con la
   plantilla vigente; por eso no es un archivo legal inmutable del PDF original.
-- El acceso utiliza una contraseña compartida del equipo, cookie HttpOnly/Secure
+- La consulta del historial utiliza una contraseña compartida del equipo, cookie HttpOnly/Secure
   con duración de 12 horas, validación del origen y límite de intentos de acceso.
   El campo Perito es un dato del informe, no una identidad de usuario verificada.
+- Cada formulario recibe una clave aleatoria de escritura que se conserva en el
+  borrador local. Permite guardar únicamente ese informe, nunca consultar datos,
+  fotos o registros del historial. El servidor guarda sólo su hash. Abrir un
+  informe desde el historial autoriza ese navegador para continuar guardándolo
+  aunque expire la sesión de consulta. Los borradores previos pueden obtener su
+  primera clave mediante el identificador privado de su versión guardada.
+- Los envíos sin sesión tienen límites por IP y hora: 240 preparaciones/guardados
+  por operación, 1000 cargas y 280 MB de solicitudes de imágenes. El formulario
+  público acepta registros de cualquier visitante; estos límites reducen abusos
+  pero no equivalen a identificar al perito.
 - La conexión a Neon nunca se entrega al navegador. Las tablas incluyen registros
   de imágenes subidas antes de un fallo de guardado; no se eliminan automáticamente.
   Revisa el almacenamiento contratado conforme crezca el uso.
@@ -110,7 +121,8 @@ Las cifras corresponden a los archivos registrados por la aplicación; no incluy
 objetos subidos fuera de ella ni cargas huérfanas. Cada imagen se vuelve a leer y
 se verifica mediante SHA-256 antes de registrar su referencia en Neon.
 
-El bucket sigue privado. Las operaciones pasan por la API autenticada de Vercel;
+El bucket sigue privado. Las operaciones pasan por la API de Vercel; la escritura se autoriza por informe
+y la lectura requiere la sesión privada del historial;
 no se exponen credenciales ni URLs públicas y no hace falta configurar CORS en R2.
 La API devuelve temporalmente una data URL al navegador para mantener el PDF y los
 borradores compatibles; ese base64 no se almacena en Neon para archivos de R2.
@@ -203,9 +215,10 @@ El autoguardado local conserva un borrador por navegador y origen. Sigue siendo
 independiente del historial: sólo los botones de guardado/PDF envían información
 a Neon. El JSON descargado permite conservar o trasladar el borrador sin conexión;
 al importarlo se trata como un informe nuevo. El formulario público puede usarse
-sin sesión, pero no se pueden consultar ni escribir registros remotos sin la
-contraseña del equipo. Si se cancela el acceso durante la generación de un PDF,
-se entrega el PDF con un aviso visible de que no se guardó en el historial.
+sin sesión: guardar, descargar o ver un PDF registra automáticamente el informe.
+La contraseña sólo se solicita para consultar el historial y recuperar informes.
+Si falla el registro remoto, se entrega el PDF con un aviso visible y una opción
+de reintento; no se pide la contraseña para reintentar el guardado.
 
 ## Generador de anexos y herramientas PDF
 

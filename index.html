@@ -574,7 +574,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
  if(!window.ReportHistory){cloudMessage('No se pudo cargar el historial.',true);return;}
  if(!confirm('¿Abrir el informe del historial y reemplazar el borrador de este navegador? Descarga primero el borrador si necesitas conservarlo.'))return;
  reportBusy(true);
- try{const stored=await window.ReportHistory.open(report,params.get('version'),text=>cloudMessage(text));const next=P.normalize(stored.data);loadData(next,'Informe recuperado del historial.');historyRef=params.get('copy')==='1'?{id:crypto.randomUUID(),version:null}:{id:stored.id,version:stored.version_id};save();cloudMessage(params.get('copy')==='1'?'Copia recuperada · al guardar se creará un informe nuevo.':'Informe recuperado · puedes editarlo y guardar una nueva versión.');history.replaceState(null,'',location.pathname);}
+ try{const stored=await window.ReportHistory.open(report,params.get('version'),text=>cloudMessage(text));const next=P.normalize(stored.data);loadData(next,'Informe recuperado del historial.');historyRef=params.get('copy')==='1'?{id:crypto.randomUUID(),version:null}:{id:stored.id,version:stored.version_id,writeKey:stored.writeKey};save();cloudMessage(params.get('copy')==='1'?'Copia recuperada · al guardar se creará un informe nuevo.':'Informe recuperado · puedes editarlo y guardar una nueva versión.');history.replaceState(null,'',location.pathname);}
  catch(error){cloudMessage(error.message,true);}finally{reportBusy(false);}
 });
 </script></body></html>
