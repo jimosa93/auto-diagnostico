@@ -1,6 +1,8 @@
 'use strict';
 const {neon}=require('@neondatabase/serverless');
 const schema=[
+ `CREATE TABLE IF NOT EXISTS ad_generator_events (id uuid PRIMARY KEY, action text NOT NULL CHECK(action IN ('save','export')), content_hash text NOT NULL, data jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now())`,
+ `CREATE INDEX IF NOT EXISTS ad_generator_created ON ad_generator_events(created_at DESC,id)`,
  `CREATE TABLE IF NOT EXISTS ad_reports (id uuid PRIMARY KEY, current_version uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now())`,
  `CREATE TABLE IF NOT EXISTS ad_report_writers (report_id uuid NOT NULL REFERENCES ad_reports(id), key_hash text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(report_id,key_hash))`,
  `CREATE TABLE IF NOT EXISTS ad_write_limits (key text PRIMARY KEY, attempts integer NOT NULL, bytes bigint NOT NULL DEFAULT 0, expires_at timestamptz NOT NULL)`,

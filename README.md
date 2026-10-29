@@ -113,8 +113,22 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
   de imágenes subidas antes de un fallo de guardado; no se eliminan automáticamente.
   Revisa el almacenamiento contratado conforme crezca el uso.
 
-Este historial corresponde al **Peritaje vehicular**. Los originales del generador
-fotográfico independiente y los archivos de Unir PDFs/Word continúan siendo locales.
+El historial tiene dos pestañas: **Peritajes** y **Generador**. En el generador,
+**Guardar registro** y cada exportación de PDF completada crean una entrada
+independiente, incluso para la misma placa. Se guardan placa, vehículo, servicio,
+fecha de inspección, tipo de servicio, nombre del centro, cantidad de fotos y
+opciones de composición/optimización. La hora del registro la asigna el servidor.
+No se envían fotos, logos, descripciones de fotos ni archivos PDF a Neon o R2.
+El guardado no pide contraseña; la consulta y el CSV sí requieren la sesión del
+historial. Los registros del generador no permiten reconstruir el PDF.
+
+Si falla la conexión, el PDF se puede descargar y aparece un botón para reintentar.
+Los datos básicos pendientes se conservan en la sesión de esa pestaña (si el
+navegador lo permite); los reintentos conservan el identificador para no duplicar
+entradas. No cierres la pestaña hasta terminar el guardado. El borrador automático,
+el ZIP de originales y el ZIP de fotos optimizadas siguen siendo locales y no
+crean entradas. Los archivos de Unir PDFs/Word también continúan siendo locales.
+La tabla `ad_generator_events` se crea automáticamente sin nuevas variables de entorno.
 
 ## Almacenamiento de imágenes en R2
 

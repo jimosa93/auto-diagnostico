@@ -70,4 +70,4 @@ async function getReport(db,report,version){
  if(!rows.length)fail('No se encontró el informe.',404);return rows[0];
 }
 async function events(db,report){id(report);return db.query('SELECT id,version_id,action,created_at FROM ad_events WHERE report_id=$1 ORDER BY created_at DESC,id DESC LIMIT 500',[report]);}
-module.exports={id,fail,stable,validateData,putAsset,saveReport,list,getReport,events};
+module.exports={filters,id,fail,stable,validateData,putAsset,saveReport,list,getReport,events};

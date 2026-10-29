@@ -8,3 +8,5 @@
 .question-dialog{border:1px solid var(--line);border-radius:18px;padding:24px;width:min(450px,calc(100% - 32px));color:var(--ink);box-shadow:0 24px 70px #0c1b3260}.question-dialog::backdrop{background:#0c1b3299}.question-dialog h2{font-size:20px;margin:0 0 16px}.question-dialog label{display:block;line-height:1.6}.question-dialog input{display:block;width:100%;margin-top:12px}.question-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 
 @media(max-width:760px){.photo-card select{font-size:16px}.top-inner{flex-wrap:wrap}.top-actions{flex-wrap:wrap}.save{white-space:normal}.photo-number{flex-wrap:wrap}.cat-actions button{min-height:40px}.large-check,.detail-check{font-size:13px}.intro p{font-size:15px}}
+
+.history-tools a{display:block;font-size:14px;line-height:1.5;padding:6px 0;text-decoration:none;font-weight:600}.history-tools a:hover{text-decoration:underline}

@@ -4,7 +4,9 @@
 <div id="message" class="notice" role="status" hidden></div>
 <section id="access" class="card"><h2>Tu archivo, en un solo lugar</h2><p>Accede con la contraseña del equipo para buscar informes y continuar una inspección desde cualquier dispositivo.</p><button id="login" class="primary">Entrar al historial</button></section>
 <section id="workspace" hidden>
-<section class="card storage-card" aria-labelledby="storage-title">
+<nav class="history-tabs" aria-label="Tipo de historial"><button id="tab-reports" aria-pressed="true">Peritajes</button><button id="tab-generator" aria-pressed="false">Generador</button></nav>
+<p id="generator-note" class="hint" hidden>Una entrada por cada guardado manual o exportación de PDF del generador. Sólo se conservan datos básicos y cantidad de fotos; las imágenes y el PDF no se almacenan aquí. <a href="/generador/">Ir al generador →</a></p>
+<section id="storage-card" class="card storage-card" aria-labelledby="storage-title">
 <div class="list-heading"><h2 id="storage-title">Almacenamiento de imágenes</h2><button id="refresh-storage" type="button">Actualizar</button></div>
 <p id="storage-summary" class="hint" role="status">Consultando almacenamiento…</p>
 <div id="storage-metrics" class="storage-metrics"></div>
@@ -14,4 +16,4 @@
 <div class="list-heading"><p id="count" class="hint"></p><button id="csv">↓ Exportar resultados a CSV</button></div>
 <div id="list"></div><div class="pagination"><button id="previous">← Anteriores</button><span id="page"></span><button id="next">Siguientes →</button></div>
 <section id="events" class="card" hidden><div class="list-heading"><h2 id="events-title">Actividad del informe</h2><button id="close-events">Cerrar</button></div><p class="hint">Las versiones anteriores se abren como una copia nueva. La hora se muestra en Colombia.</p><div id="events-list"></div></section>
-</section><footer><span>AutoDiagnóstico · Historial privado del equipo</span><span>Los PDFs se regeneran a partir de la versión guardada.</span></footer></main></body></html>
+</section><footer><span>AutoDiagnóstico · Historial privado del equipo</span><span>Los PDFs de peritaje se regeneran desde su versión guardada.</span></footer></main></body></html>
