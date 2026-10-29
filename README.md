@@ -77,7 +77,13 @@ Abre <http://127.0.0.1:8081>. Los cambios de interfaz requieren repetir el build
 - `/historial/` permite buscar por placa/servicio/vehículo, filtrar por fecha de
   guardado en Colombia, exportar los resultados a CSV y abrir informes. La
   actividad muestra hasta las últimas 500 acciones de cada informe.
-- Cada modificación crea una versión. Guardar/descargar/ver sin cambiar los datos
+- Si la placa cambia respecto al informe guardado, **Guardar informe**, **Descargar
+  PDF** y **Ver PDF** crean automáticamente otro registro, conservando el anterior.
+  La comparación se hace contra la base de datos, incluso tras recargar o abrir
+  un informe desde el historial. Mayúsculas, espacios y guiones no cambian la
+  identidad de una placa. Volver luego a una placa anterior crea otro registro;
+  no se fusionan inspecciones distintas por tener la misma placa.
+- Cada modificación de la misma placa crea una versión. Guardar/descargar/ver sin cambiar los datos
   conserva esa versión y añade un evento. Los reintentos del mismo evento son
   idempotentes. No hay eliminación de informes en esta versión.
 - Abrir un informe actual permite continuar editándolo. Abrir una versión anterior

@@ -4,7 +4,8 @@ const {sha}=require('./security.cjs');
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const HASH=/^[a-f0-9]{64}$/;
 const ACTIONS=['save','download','preview'];
-function fail(message,status=400){throw Object.assign(Error(message),{status});}
+function fail(message,status=400,code){throw Object.assign(Error(message),{status,...(code?{code}:{})});}
+function plateIdentity(value){return String(value||'').toUpperCase().replace(/[\s-]+/g,'');}
 function id(value){if(typeof value!=='string'||!UUID.test(value))fail('Identificador no válido.');return value;}
 function stable(value){if(Array.isArray(value))return '['+value.map(stable).join(',')+']';if(value&&typeof value==='object')return '{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+stable(value[k])).join(',')+'}';return JSON.stringify(value);}
 const textFields=['company','phones','email','social','plate','brand','line','year','color','mileage','fuel','vehicleType','service','date','location','result','bodyScore','bodyState','chassisScore','chassisState','priority','tireNotes','additionalNotes','leaks','concept','idNotes','perito','signDate','continuation'];
@@ -29,6 +30,8 @@ async function saveReport(db,body){
  const report=id(body.reportId),event=id(body.eventId),base=body.baseVersion===null?null:id(body.baseVersion);
  if(!ACTIONS.includes(body.action))fail('Acción no válida.');
  const {data,assets}=validateData(body.data),hash=sha(stable(data)),version=randomUUID();
+ const [current]=await db.query(`SELECT v.data->>'plate' AS plate FROM ad_reports r JOIN ad_versions v ON v.id=r.current_version WHERE r.id=$1`,[report]);
+ if(current&&plateIdentity(current.plate)!==plateIdentity(data.plate))fail('La placa cambió. Este vehículo debe guardarse como un informe nuevo.',409,'PLATE_CHANGED');
  if(assets.length){const found=await db.query('SELECT hash FROM ad_assets WHERE hash = ANY($1::text[])',[assets]);if(found.length!==assets.length)fail('Faltan imágenes por guardar. Vuelve a intentarlo.');}
  // Serialize each report, check the parent version and commit the snapshot + event together.
  const results=await db.transaction([

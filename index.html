@@ -511,7 +511,7 @@ async function recordReport(snapshot,action){
  if(!window.ReportHistory)throw Error('El historial requiere abrir la aplicación desde su URL pública.');
  const result=await window.ReportHistory.save(snapshot,historyRef,action,text=>{cloudMessage(text);save();});
  save();pendingRecord=null;$('#cloud-retry').hidden=$('#cloud-copy').hidden=true;
- cloudMessage('Guardado en el historial · '+new Intl.DateTimeFormat('es-CO',{timeStyle:'short',timeZone:'America/Bogota'}).format(new Date(result.savedAt)));return result;
+ cloudMessage((result.newReport?'Nuevo informe guardado · placa '+snapshot.plate+' · ':'Guardado en el historial · ')+new Intl.DateTimeFormat('es-CO',{timeStyle:'short',timeZone:'America/Bogota'}).format(new Date(result.savedAt)));return result;
 }
 function recordFailure(error,snapshot,action){
  pendingRecord={snapshot,action};save();cloudMessage('No se guardó en el historial. '+error.message,true);$('#cloud-retry').hidden=false;$('#cloud-copy').hidden=error.status!==409;

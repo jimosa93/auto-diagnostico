@@ -4,7 +4,7 @@
   const url='/api/history?'+new URLSearchParams({op,...params});let response;
   try{response=await fetch(url,{method,credentials:'same-origin',cache:'no-store',headers:body?{'Content-Type':'application/json'}:{},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(45000)});}catch{throw Error('No hay conexión con el historial. Conserva el borrador y vuelve a intentarlo.');}
   let value;try{value=await response.json();}catch{throw Error('El historial no está disponible en esta versión. Abre la aplicación desde su URL pública.');}
-  if(!response.ok)throw Object.assign(Error(value.error||'No se pudo completar la operación.'),{status:response.status});return value;
+  if(!response.ok)throw Object.assign(Error(value.error||'No se pudo completar la operación.'),{status:response.status,code:value.code});return value;
  }
  async function session(){if(!/^https?:$/.test(location.protocol))return {configured:false,authenticated:false};return request('session');}
  async function authenticate(){
@@ -37,8 +37,20 @@
   const data=await pack(source,reference,onProgress),fingerprint=await digest(JSON.stringify({data,action}));
   if(!reference.pending||reference.pending.fingerprint!==fingerprint)reference.pending={fingerprint,eventId:crypto.randomUUID()};
   onProgress('Guardando el informe…');
-  const result=await request('save',{method:'POST',body:{reportId:reference.id,writeKey:reference.writeKey,baseVersion:reference.version||null,eventId:reference.pending.eventId,action,data}});
-  reference.version=result.versionId;delete reference.pending;return result;
+  const submit=()=>request('save',{method:'POST',body:{reportId:reference.id,writeKey:reference.writeKey,baseVersion:reference.version||null,eventId:reference.pending.eventId,action,data}});
+  let result,newReport=false;
+  try{result=await submit();}
+  catch(error){
+   if(error.code!=='PLATE_CHANGED')throw error;
+   // Keep the event ID until a successful response so a network retry cannot
+   // create duplicate reports. Persist the new reference before its first request.
+   reference.id=crypto.randomUUID();reference.version=null;
+   reference.writeKey=Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
+   onProgress('La placa cambió. Guardando como informe nuevo…');
+   await request('write-access',{method:'POST',body:{reportId:reference.id,writeKey:reference.writeKey}});
+   result=await submit();newReport=true;
+  }
+  reference.version=result.versionId;delete reference.pending;return {...result,newReport};
  }
  async function open(reportId,version,onProgress=()=>{}){
   await authenticate();const report=await request('report',{params:{id:reportId,...(version?{version}:{})}}),data=report.data;

@@ -87,3 +87,48 @@ test('real browser client and API record both PDF actions without a login, inclu
  assert.equal(events[0].version_id,events[1].version_id);assert(calls.includes('asset'));assert(!calls.includes('login'));assert(!calls.includes('session'));
  assert.equal((await R.getReport(db,ref.id)).data.photos[0].caption,'Client API round-trip');
 });
+function browserClient(onResponse){
+ const context={window:{},crypto:webcrypto,Uint8Array,TextEncoder,structuredClone,URLSearchParams,AbortSignal,location:{protocol:'https:'},document:{createElement(){throw Error('Unexpected login dialog');}}};
+ context.fetch=async(url,options)=>{
+  const op=new URL(url,'https://example.com').searchParams.get('op'),body=JSON.parse(options.body||'{}');
+  const result=await call(op,body,false,options.method);if(onResponse)await onResponse(op,body,result);
+  return {ok:result.code===200,status:result.code,json:async()=>result.body};
+ };
+ vm.runInNewContext(fs.readFileSync('assets/history-client.js','utf8'),context);return context.window.ReportHistory;
+}
+test('each save/PDF action starts a separate report when the plate changes, preserving the previous vehicle',async()=>{
+ for(const action of ['save','download','preview']){
+  let client=browserClient(),ref={id:randomUUID(),version:null};const data=P.example();data.plate='OLD123';
+  await client.save(data,ref,'save');const original={...ref};
+  // Simulate a persisted draft reopened after reload, without a client-side plate cache.
+  ref=JSON.parse(JSON.stringify(ref));client=browserClient();data.plate='NEW456';data.brand='New vehicle';
+  const result=await client.save(data,ref,action);assert.equal(result.newReport,true);assert.notEqual(ref.id,original.id);assert.notEqual(ref.writeKey,original.writeKey);
+  assert.equal((await R.getReport(db,original.id)).data.plate,'OLD123');assert.equal((await R.getReport(db,original.id)).version_id,original.version);
+  assert.equal((await R.events(db,original.id)).length,1);assert.equal((await R.events(db,ref.id))[0].action,action);
+  assert.equal((await R.getReport(db,ref.id)).data.brand,'New vehicle');
+  const newId=ref.id;await client.save(data,ref,action);assert.equal(ref.id,newId);assert.equal((await R.events(db,newId)).length,2);
+ }
+});
+test('plate formatting keeps the same report, while switching back creates another inspection',async()=>{
+ const client=browserClient(),ref={id:randomUUID(),version:null},data=P.example();data.plate='ABC123';
+ await client.save(data,ref,'save');const first=ref.id;data.plate=' abc-123 ';data.concept='Updated';
+ await client.save(data,ref,'preview');assert.equal(ref.id,first);assert.equal((await R.events(db,first)).length,2);
+ data.plate='DEF456';await client.save(data,ref,'download');const second=ref.id;
+ data.plate='ABC123';await client.save(data,ref,'save');assert.notEqual(ref.id,first);assert.notEqual(ref.id,second);
+ assert.equal((await R.getReport(db,second)).data.plate,'DEF456');
+});
+test('a lost response after saving a new plate retries the same record and event without duplicates',async()=>{
+ let drop=false,droppedReport,event;
+ const client=browserClient(async(op,body,result)=>{if(drop&&op==='save'&&result.code===200){drop=false;droppedReport=body.reportId;event=body.eventId;throw Error('Lost response');}});
+ let ref={id:randomUUID(),version:null};const data=P.example();data.plate='AAA111';await client.save(data,ref,'save');const first=ref.id;
+ data.plate='BBB222';drop=true;await assert.rejects(client.save(data,ref,'download'),/conexión/);
+ assert.equal(ref.id,droppedReport);assert.equal(ref.pending.eventId,event);assert.notEqual(ref.id,first);
+ ref=JSON.parse(JSON.stringify(ref));await browserClient().save(data,ref,'download');assert.equal(ref.id,droppedReport);
+ assert.equal((await R.events(db,droppedReport)).length,1);assert.equal((await R.events(db,first)).length,1);
+});
+test('the API rejects overwriting a saved plate even for an older client or an authenticated reader',async()=>{
+ const ref={reportId:randomUUID(),writeKey:'f'.repeat(64)},data=P.example();data.plate='FIX123';await writes.grant(db,ref,false);
+ const original=await R.saveReport(db,{...ref,eventId:randomUUID(),baseVersion:null,action:'save',data});data.plate='OTH456';
+ const result=await call('save',{...ref,eventId:randomUUID(),baseVersion:original.versionId,action:'save',data},true);
+ assert.equal(result.code,409);assert.equal(result.body.code,'PLATE_CHANGED');assert.equal((await R.getReport(db,ref.reportId)).data.plate,'FIX123');
+});

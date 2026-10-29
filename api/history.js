@@ -49,7 +49,7 @@ async function handler(req,res){
   if(op==='migrate-assets'&&method==='POST')return send(200,await storage.migrateNext(db));
   return send(404,{error:'Operación no encontrada.'});
  }catch(error){
-  if(error.status)return send(error.status,{error:error.message});
+  if(error.status)return send(error.status,{error:error.message,...(error.code==='PLATE_CHANGED'?{code:error.code}:{})});
   console.error('History operation failed:',error.code||error.name||'Unknown');
   return send(503,{error:'No se pudo completar la operación de almacenamiento. Tu formulario sigue disponible; vuelve a intentarlo.'});
  }
